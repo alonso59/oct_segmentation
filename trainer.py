@@ -101,7 +101,7 @@ def train_fn(loader, model, writer, optimizer, loss_fn, device, metric, base_lr,
 def validation(model, loader, loss_fn, metric, device, iter_val, writer, lr_, iter_plot_img):
     valid_loss = 0.0
     valid_iou = 0.0
-    loop = tqdm(loader, ncols=100)
+    loop = tqdm(loader, ncols=120)
     model.eval()
     with torch.no_grad():
         for batch_idx, (x, y) in enumerate(loop):
