@@ -28,8 +28,8 @@ class TensorboardWriter(SummaryWriter):
 
     def save_images(self, x, y, y_pred, step, device):
         
-        gt = image_tensorboard(y[:3, :, :], device)
-        pred = F.softmax(y_pred[:3, :, :, :], dim=1)
+        gt = image_tensorboard(y[:2, :, :], device)
+        pred = F.softmax(y_pred[:2, :, :, :], dim=1)
         pred = torch.argmax(pred, dim=1)
         pred = image_tensorboard(pred, device)
         self.writer.add_images(f'Data', x[:2, :, :, :], step)
