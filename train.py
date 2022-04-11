@@ -1,15 +1,15 @@
 import datetime
 import numpy as np
-from trainer import trainer
-from dataset import loaders
+from src.trainer import trainer
+from src.dataset import loaders
 import os
 from matplotlib import pyplot as plt
-from utils import create_dir, seeding
-from loss import *
-from metrics import mIoU
+from src.utils import create_dir, seeding
+from src.loss import *
+from src.metrics import mIoU
 from torch.optim.lr_scheduler import StepLR, ExponentialLR
-from swin_unet import SwinUnet
-from unet import Unet
+from networks.swin_unet import SwinUnet
+from networks.unet import Unet
 import sys
 import torch
 from torchsummary import summary
