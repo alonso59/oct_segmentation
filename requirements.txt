@@ -1,0 +1,7 @@
+pip install scikit-learn
+pip install pillow
+pip install opencv-python
+conda install matplotlib
+conda install pillow
+conda install albumentations
+conda install pytorch torchvision cudatoolkit -c pytorch

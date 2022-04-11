@@ -1,0 +1,6 @@
+runs/
+pretrained/
+dataset/
+data4/
+checkpoints/
+__pycache__/
