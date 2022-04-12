@@ -19,6 +19,9 @@ class Unet(nn.Module):
         features_start: Number of features in first layer (default 64)
         bilinear: Whether to use bilinear interpolation or transposed convolutions (default) for upsampling.
     """
+    @property
+    def __name__(self):
+        return "unet"
 
     def __init__(
         self,

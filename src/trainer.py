@@ -1,7 +1,7 @@
 import torch
 
 from tqdm import tqdm
-from callbacks import TensorboardWriter
+from src.callbacks import TensorboardWriter
 
 
 def trainer(num_epochs,
@@ -13,7 +13,6 @@ def trainer(num_epochs,
             metric,
             device,
             checkpoint_path,
-            base_lr,
             scheduler,
             iter_plot_img
             ):
@@ -24,9 +23,11 @@ def trainer(num_epochs,
     best_valid_loss = float("inf")
     # images, _ = next(iter(train_loader))
     # writer.save_graph(model, images)
-
+    lr_ = optimizer.param_groups[0]["lr"]
     for epoch in range(num_epochs):
-        print(f"Epoch: {epoch+1}/{num_epochs}")
+        print(f"Epoch: {epoch+1}/{num_epochs} ---" +
+                f"metric:{metric.__name__} --- loss_fn:{loss_fn.__name__} ---" +
+                f"model:{model.__name__} --- lr:{lr_:0.4f}")
 
         train_loss, train_metric, iter_num, lr_ = train_fn(
             loader=train_loader,
@@ -36,7 +37,7 @@ def trainer(num_epochs,
             loss_fn=loss_fn,
             device=device,
             metric=metric,
-            base_lr=base_lr,
+            lr_=lr_,
             iter_num=iter_num,
             max_epochs=num_epochs,
         )
@@ -58,15 +59,14 @@ def trainer(num_epochs,
         else:
             str_print = f"Valid loss not improved: {best_valid_loss:2.4f}"
 
-        print(
-            f'--> Train {metric.__name__}: {train_metric:.4f} \t Val. {metric.__name__}: {val_metric:.4f}')
+        print(f'--> Train {metric.__name__}: {train_metric:.4f} \t Val. {metric.__name__}: {val_metric:.4f}')
         print(f'--> Train Loss: {train_loss:.4f} \t Val. Loss: {val_loss:.4f}')
         print(str_print)
 
     writer.close()
 
 
-def train_fn(loader, model, writer, optimizer, loss_fn, device, metric, base_lr, iter_num, max_epochs):
+def train_fn(loader, model, writer, optimizer, loss_fn, device, metric, lr_, iter_num, max_epochs):
     train_loss = 0.0
     train_iou = 0.0
     loop = tqdm(loader, ncols=120)
@@ -82,16 +82,13 @@ def train_fn(loader, model, writer, optimizer, loss_fn, device, metric, base_lr,
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        # lr scheduler
-        lr_ = optimizer.param_groups[0]["lr"]
         # metrics
         m0 = metric(y_pred, y)
         # accumulate metrics and loss items
         train_iou += m0.mean()
         train_loss += loss.item()
         # update tqdm loop
-        name = metric.__name__
-        loop.set_postfix(metric=f'({name}:{m0.mean():2.4f})', loss=loss.item())
+        loop.set_postfix(metric=m0.mean(), loss=loss.item())
         # tensorboard callbacks
         writer.per_iter(loss.item(), m0.mean(), lr_, iter_num, name='Train')
         iter_num = iter_num + 1
@@ -110,12 +107,11 @@ def validation(model, loader, loss_fn, metric, device, iter_val, writer, lr_, it
             y_pred = model(x)
             loss = loss_fn(y_pred, y)
             m0 = metric(y_pred, y)
-            name = metric.__name__
             # accumulate metrics and loss items
             valid_iou += m0.mean()
             valid_loss += loss.item()
             # update tqdm
-            loop.set_postfix(metric=f'({name}:{m0.mean():2.4f})', loss=loss.item())
+            loop.set_postfix(metric=m0.mean(), loss=loss.item())
             # tensorboard callbacks
             writer.per_iter(loss.item(), m0.mean(), lr_, iter_val, name='Val')
             if iter_val % iter_plot_img == 0:

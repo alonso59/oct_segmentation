@@ -785,11 +785,11 @@ class SwinUnet(nn.Module):
                                 in_chans=in_chans,
                                 num_classes=self.num_classes,
                                 embed_dim=96,
-                                depths=[2, 2, 6, 2],
+                                depths=[2, 2, 2, 2],
                                 num_heads=[3, 6, 12, 24],
                                 window_size=7,
                                 mlp_ratio=4.,
-                                qkv_bias=True,
+                                qkv_bias=False,
                                 qk_scale=None,
                                 drop_rate=0.0,
                                 drop_path_rate=0.1,
@@ -797,6 +797,9 @@ class SwinUnet(nn.Module):
                                 patch_norm=True,
                                 use_checkpoint=False)
 
+    @property
+    def __name__(self):
+        return "swin_unet"
 
     def forward(self, x):
         if x.size()[1] == 1:

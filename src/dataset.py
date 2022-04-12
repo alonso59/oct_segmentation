@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from albumentations.pytorch import ToTensorV2
-from utils import visualize
+from src.utils import visualize
 
 class ImagesFromFolder(Dataset):
     def __init__(self, image_dir, mask_dir, transform=None, channels=3):
