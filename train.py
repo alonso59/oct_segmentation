@@ -1,5 +1,6 @@
 import os
 import sys
+from tabnanny import verbose
 import torch
 import datetime
 import numpy as np
@@ -76,7 +77,7 @@ def main():
     
     loss_fn = WeightedCrossEntropyDice(class_weights=class_weights, device=device)
     metrics = mIoU(device)
-    scheduler = StepLR(optimizer, step_size=20, gamma=0.8)
+    scheduler = StepLR(optimizer, step_size=20, gamma=0.8, verbose=True).step()
     """ 
     Directories 
     """
