@@ -49,7 +49,7 @@ def loaders(train_imgdir,
     train_transforms = T.Compose(
         [
 
-            T.Rotate(limit=(-30, 30), p=1.0),
+            T.Rotate(limit=(-10, 10), p=1.0),
             T.HorizontalFlip(p=0.5),
             ToTensorV2(),
         ]

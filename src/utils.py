@@ -16,11 +16,6 @@ def split_data(extention, train_size=0.8, images_path=None, masks_path=None, tra
     create_dir(train_masks_dir)
     create_dir(val_masks_dir)
 
-    path0_train = train_images_dir
-    path1_train = train_masks_dir
-    path0_val = val_images_dir
-    path1_val = val_masks_dir
-
     x = get_filenames(images_path, extention)
     y = get_filenames(masks_path, extention)
 
@@ -29,12 +24,12 @@ def split_data(extention, train_size=0.8, images_path=None, masks_path=None, tra
     )
 
     for i, j in zip(X_train, y_train):
-        shutil.copy(os.path.join(i), path0_train)
-        shutil.copy(os.path.join(j), path1_train)
+        shutil.copy(os.path.join(i), train_images_dir)
+        shutil.copy(os.path.join(j), train_masks_dir)
 
     for i, j in zip(X_val, y_val):
-        shutil.copy(os.path.join(i), path0_val)
-        shutil.copy(os.path.join(j), path1_val)
+        shutil.copy(os.path.join(i), val_images_dir)
+        shutil.copy(os.path.join(j), val_masks_dir)
 
 
 def visualize(n, image, mask, pr_mask=None, path_save=None, metric_dict=None):
@@ -62,8 +57,8 @@ def visualize(n, image, mask, pr_mask=None, path_save=None, metric_dict=None):
             ax[0, 2].title.set_text(f'Prediction \n{metric_dict[0]}')
             ax[i, 2].title.set_text(f'{metric_dict[i]}')
             ax[i, 2].axis('off')
-    plt.show()
-    # plt.savefig(path_save + str(np.random.randint(0, 100)) + ".png")
+    # plt.show()
+    plt.savefig(path_save + str(np.random.randint(0, 100)) + ".png")
 
 
 
@@ -88,12 +83,3 @@ def get_filenames(path, ext):
             X0.append(os.path.join(path, i))
     return X0
 
-
-def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
-    print("=> Saving checkpoint")
-    torch.save(state, filename)
-
-
-def load_checkpoint(checkpoint, model):
-    print("=> Loading checkpoint")
-    model.load_state_dict(checkpoint["state_dict"])

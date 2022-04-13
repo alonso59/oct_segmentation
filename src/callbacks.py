@@ -20,21 +20,26 @@ class TensorboardWriter(SummaryWriter):
         self.writer.add_scalars(
             f'{self.metric.__name__}', results_metric, step)
 
-    def per_iter(self, loss, metric, lr_, step, name):
+    def per_iter(self, loss, metric, step, name):
         self.writer.add_scalar(f"{name}/Loss", loss, step)
         self.writer.add_scalar(f'{name}/{self.metric.__name__}', metric, step)
+
+    def learning_rate(self, lr_, step):
         self.writer.add_scalar("lr", lr_, step)
 
     def save_graph(self, model, loader):
         self.writer.add_graph(model, loader)
 
+    def save_text(self, tag, text_string):
+        self.writer.add_text(tag=tag, text_string=text_string)
+
     def save_images(self, x, y, y_pred, step, device):
         
-        gt = image_tensorboard(y[:2, :, :], device)
-        pred = F.softmax(y_pred[:2, :, :, :], dim=1)
+        gt = image_tensorboard(y[:4, :, :], device)
+        pred = F.softmax(y_pred[:4, :, :, :], dim=1)
         pred = torch.argmax(pred, dim=1)
         pred = image_tensorboard(pred, device)
-        self.writer.add_images(f'Data', x[:2, :, :, :], step)
+        self.writer.add_images(f'Data', x[:4, :, :, :], step)
         self.writer.add_images(f'Ground truth', gt.unsqueeze(1), step)
         self.writer.add_images(f'Prediction', pred.unsqueeze(1), step)
 
