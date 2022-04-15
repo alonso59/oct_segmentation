@@ -43,7 +43,7 @@ def visualize(n, image, mask, pr_mask=None, path_save=None, metric_dict=None):
         figure, ax = plt.subplots(nrows=n, ncols=2)
 
     for i in range(n):
-        if image.ndim == 3:
+        if image.ndim == 4:
             ax[i, 0].imshow(image[i, :, :, :])
         else:
             ax[i, 0].imshow(image[i, :, :], cmap='gray')

@@ -45,7 +45,7 @@ def trainer(num_epochs,
             max_epochs=num_epochs,
         )
 
-        # scheduler.step()
+        scheduler.step()
 
         val_loss, val_metric, iter_val = validation(
             model, val_loader, loss_fn, metric, device, iter_val, writer, lr_, iter_plot_img)
@@ -87,7 +87,7 @@ def train_fn(loader, model, writer, optimizer, loss_fn, device, metric, lr_, ite
         optimizer.step()
         # metrics
         m0 = metric(y_pred, y)
-        optimizer.param_groups[0]["lr"] = lr_ * (math.exp(-iter_num * 3 / max_iterations))
+        # optimizer.param_groups[0]["lr"] = lr_ * (math.exp(-iter_num * 2 / max_iterations))
         # accumulate metrics and loss items
         train_iou += m0.mean()
         train_loss += loss.item()
@@ -124,3 +124,22 @@ def validation(model, loader, loss_fn, metric, device, iter_val, writer, lr_, it
             iter_val += 1
 
     return valid_loss/len(loader), valid_iou/len(loader), iter_val
+
+def eval(model, loader, loss_fn, metric, device):
+    valid_loss = 0.0
+    valid_iou = 0.0
+    loop = tqdm(loader, ncols=120)
+    model.eval()
+    with torch.no_grad():
+        for batch_idx, (x, y) in enumerate(loop):
+            x = x.type(torch.float).to(device)
+            y = y.type(torch.long).to(device)
+            y_pred = model(x)
+            loss = loss_fn(y_pred, y)
+            m0 = metric(y_pred, y)
+            # accumulate metrics and loss items
+            valid_iou += m0.mean()
+            valid_loss += loss.item()
+            # update tqdm
+            loop.set_postfix(metric=m0.mean(), loss=loss.item())
+    return valid_loss/len(loader), valid_iou/len(loader)

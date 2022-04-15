@@ -1,31 +1,25 @@
-import os
-import sys
-from tabnanny import verbose
-import torch
-import datetime
+import matplotlib.pyplot as plt
 import numpy as np
+import torch
+import torchvision
+import torchvision.transforms as transforms
+import torch.optim as optim
 import torch.nn as nn
-import json
+import torch.nn.functional as F
 
-from src.loss import *
-from src.metrics import mIoU
-from src.trainer import trainer
-from src.dataset import loaders
-from src.utils import create_dir, seeding
+from src.trainer import eval
 
-from scheduler import CyclicCosineDecayLR
+from ax.plot.contour import plot_contour
+from ax.plot.trace import optimization_trace_single_method
+from ax.service.managed_loop import optimize
+from ax.utils.notebook.plotting import render
+from ax.utils.tutorials.cnn_utils import train, evaluate
+import sys
 
-from models import ModelSegmentation
-
-from matplotlib import pyplot as plt
-from torch.optim.lr_scheduler import StepLR, ExponentialLR
-
-# import torch.utils.tensorboard
-from torchsummary import summary
-import configparser
+from train import *
 
 
-def main():
+def experiment(parameters):
     config = configparser.ConfigParser()
     config.read("configs/swin_config.ini")
     paths = config['PATHS']
@@ -38,14 +32,14 @@ def main():
     """ 
     Hyperparameters 
     """
-    batch_size = hyperparameters.getint('batch_size'),
-    num_epochs = hyperparameters.getint('num_epochs'),
-    lr = hyperparameters.getfloat('lr'),
-    B1 = hyperparameters.getfloat('B1'),
-    B2 = hyperparameters.getfloat('B2'),
-    weight_decay = hyperparameters.getfloat('weight_decay'),
+    batch_size = parameters.get("batch_size", 128)
+    num_epochs = hyperparameters.getint('num_epochs')
+    lr = parameters.get("lr", 0.001)
+    B1 = parameters.get("beta1", 0.9)
+    B2 = parameters.get("beta1", 0.999)
+    weight_decay = parameters.get("weight_decay", 0)
     class_weights = [0.3, 5, 8]
-    gpus_ids = [0, 1]
+    gpus_ids = [0, 1, 2, 3]
     """
     Paths
     """
@@ -110,6 +104,13 @@ def main():
     create_dir(checkpoint_path)
     with open(checkpoint_path + 'experiment.ini', 'w') as configfile:
         config.write(configfile)
+    with open(checkpoint_path + 'bayessian.ini', 'w') as text_file:
+        text_file.write(f"Learning rate: {lr}\n")
+        text_file.write(f"weight_decay: {weight_decay}\n")
+        text_file.write(f"BETA1, BETA2: {B1, B2}\n")
+        text_file.write(f"Epochs: {num_epochs}\n")
+        text_file.write(f"Batch size: {batch_size}\n")
+        text_file.close()
     sys.stdout = open(checkpoint_path + 'stdout.txt', 'w')
     # summary(model, input_size=(1, img_size, img_size), batch_size=-1)
     print(f'Total_params:{pytorch_total_params}')
@@ -130,6 +131,41 @@ def main():
             name_model=name_model,
             base_lr=lr
             )
+    load_best_model = torch.load(checkpoint_path + 'model.pth')
+    _, iou_eval = eval(load_best_model, val_loader, loss_fn, metrics, device)
+    return iou_eval
+
+def bayessian():
+    best_parameters, values, exp, model = optimize(
+        parameters=[
+            {"name": "lr", "type": "range", "bounds": [5e-4, 5e-3], "log_scale": True},
+            {"name": "batch_size", "type": "range", "bounds": [64, 128]},
+            {"name": "weight_decay", "type": "range", "bounds": [0.0, 1e-3]},
+            {"name": "beta1", "type": "range", "bounds": [0.5, 0.9]},
+            {"name": "beta2", "type": "range", "bounds": [0.5, 0.999]}
+            # {"name": "num_epochs", "type": "range", "bounds": [300, 500]},
+        ],
+        total_trials=20,
+        evaluation_function=experiment,
+        objective_name='iou',
+    )
+
+    print(best_parameters)
+    print(exp)
+    means, covariances = values
+    print(means)
+    print(covariances)
+
+    best_objectives = np.array([[trial.objective_mean*100 for trial in exp.trials.values()]])
+
+    best_objective_plot = optimization_trace_single_method(
+        y=np.maximum.accumulate(best_objectives, axis=1),
+        title="Model performance vs. # of iterations",
+        ylabel="Classification Accuracy, %",
+    )
+    render(best_objective_plot)
+
+    render(plot_contour(model=model, param_x='batchsize', param_y='lr', metric_name='accuracy'))
+
 if __name__ == '__main__':
-    main()
-    sys.stdout.close()
+    bayessian()
