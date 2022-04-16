@@ -38,14 +38,14 @@ def main():
     """ 
     Hyperparameters 
     """
-    batch_size = hyperparameters.getint('batch_size'),
-    num_epochs = hyperparameters.getint('num_epochs'),
-    lr = hyperparameters.getfloat('lr'),
-    B1 = hyperparameters.getfloat('B1'),
-    B2 = hyperparameters.getfloat('B2'),
-    weight_decay = hyperparameters.getfloat('weight_decay'),
-    class_weights = [0.3, 5, 8]
-    gpus_ids = [0, 1, 2, 3]
+    batch_size = hyperparameters.getint('batch_size')
+    num_epochs = hyperparameters.getint('num_epochs')
+    lr = hyperparameters.getfloat('lr')
+    B1 = hyperparameters.getfloat('B1')
+    B2 = hyperparameters.getfloat('B2')
+    weight_decay = hyperparameters.getfloat('weight_decay')
+    class_weights = [0.3, 1, 1, 1]
+    gpus_ids = [0]
     """
     Paths
     """
