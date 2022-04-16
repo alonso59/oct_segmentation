@@ -11,7 +11,6 @@ from src.metrics import mIoU
 from src.dataset import loaders
 from src.utils import create_dir, seeding
 from scheduler import CyclicCosineDecayLR
-from models import ModelSegmentation
 from matplotlib import pyplot as plt
 from torch.optim.lr_scheduler import StepLR, ExponentialLR
 # import torch.utils.tensorboard

@@ -4,9 +4,9 @@ from src.loss import *
 from src.metrics import mIoU
 
 class ModelSegmentation(LightningModule):
-    def __init__(self, device, in_channels=3, n_classes=1, img_size=224, pretrain=True) -> None:
+    def __init__(self, device, n_classes=1, img_size=224, pretrain=True) -> None:
         super().__init__()
-        self.model = SwinUnet(self, in_channels=in_channels, n_classes=n_classes, img_size=img_size, pretrain=pretrain)
+        self.model = SwinUnet(self, in_chans=3, n_classes=n_classes, img_size=img_size, pretrain=pretrain)
         if pretrain:
             self.model.state_dict()
             self.model.load_from("pretrained/swin_tiny_patch4_window7_224.pth", self.device)
