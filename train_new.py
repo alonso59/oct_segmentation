@@ -64,7 +64,7 @@ def main():
     """ 
     Getting loader
     """
-    model = ModelSegmentation(n_classes=n_classes, img_size=img_size, pretrain=pretrain)
+    model = ModelSegmentation(device=device, n_classes=n_classes, img_size=img_size, pretrain=pretrain)
 
     """ Loaders """
     train_loader, val_loader = loaders(train_imgdir=train_imgdir,
