@@ -87,7 +87,7 @@ def train_fn(loader, model, writer, optimizer, loss_fn, device, metric, lr_, ite
         optimizer.step()
         # metrics
         m0 = metric(y_pred, y)
-        # optimizer.param_groups[0]["lr"] = lr_ * (math.exp(-iter_num * 2 / max_iterations))
+        # optimizer.param_groups[0]["lr"] = lr_ * (math.exp(-iter_num * 3 / max_iterations))
         # accumulate metrics and loss items
         train_iou += m0.mean()
         train_loss += loss.item()

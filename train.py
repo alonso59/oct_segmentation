@@ -45,7 +45,7 @@ def main():
     B2 = hyperparameters.getfloat('B2'),
     weight_decay = hyperparameters.getfloat('weight_decay'),
     class_weights = [0.3, 5, 8]
-    gpus_ids = [0, 1]
+    gpus_ids = [0, 1, 2, 3]
     """
     Paths
     """
@@ -94,14 +94,12 @@ def main():
     loss_fn = WeightedCrossEntropyDice(class_weights=class_weights, device=device)
     # loss_fn = DiceLoss(device=device)
     metrics = mIoU(device)
-    scheduler = StepLR(optimizer=optimizer, step_size=60, gamma=0.8)
-    # scheduler = CyclicCosineDecayLR(optimizer,
-    #                                 init_decay_epochs=500,
-    #                                 min_decay_lr=5e-6,
-    #                                 restart_interval=50,
-    #                                 restart_lr=5e-6,
-    #                                 warmup_epochs=200,
-    #                                 warmup_start_lr=0.0005)
+    # scheduler = StepLR(optimizer=optimizer, step_size=60, gamma=0.8)
+    scheduler = CyclicCosineDecayLR(optimizer,
+                                    init_decay_epochs=400,
+                                    min_decay_lr=1e-5,
+                                    restart_interval=100,
+                                    restart_lr=1e-4)
     """
     Directories
     """

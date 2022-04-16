@@ -38,7 +38,7 @@ def experiment(parameters):
     B1 = parameters.get("beta1", 0.9)
     B2 = parameters.get("beta1", 0.999)
     weight_decay = parameters.get("weight_decay", 0)
-    class_weights = [0.3, 5, 8]
+    class_weights = [0.5, 1, 1]
     gpus_ids = [0, 1, 2, 3]
     """
     Paths
@@ -88,14 +88,11 @@ def experiment(parameters):
     loss_fn = WeightedCrossEntropyDice(class_weights=class_weights, device=device)
     # loss_fn = DiceLoss(device=device)
     metrics = mIoU(device)
-    scheduler = StepLR(optimizer=optimizer, step_size=60, gamma=0.8)
-    # scheduler = CyclicCosineDecayLR(optimizer,
-    #                                 init_decay_epochs=500,
-    #                                 min_decay_lr=5e-6,
-    #                                 restart_interval=50,
-    #                                 restart_lr=5e-6,
-    #                                 warmup_epochs=200,
-    #                                 warmup_start_lr=0.0005)
+    scheduler = CyclicCosineDecayLR(optimizer,
+                                    init_decay_epochs=400,
+                                    min_decay_lr=1e-5,
+                                    restart_interval=80,
+                                    restart_lr=1e-4)
     """
     Directories
     """
@@ -138,8 +135,8 @@ def experiment(parameters):
 def bayessian():
     best_parameters, values, exp, model = optimize(
         parameters=[
-            {"name": "lr", "type": "range", "bounds": [5e-4, 5e-3], "log_scale": True},
-            {"name": "batch_size", "type": "range", "bounds": [64, 128]},
+            {"name": "lr", "type": "range", "bounds": [1e-3, 1e-2], "log_scale": True},
+            {"name": "batch_size", "type": "range", "bounds": [100, 128]},
             {"name": "weight_decay", "type": "range", "bounds": [0.0, 1e-3]},
             {"name": "beta1", "type": "range", "bounds": [0.5, 0.9]},
             {"name": "beta2", "type": "range", "bounds": [0.5, 0.999]}
