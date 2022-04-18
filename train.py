@@ -5,7 +5,7 @@ import torch
 import datetime
 import numpy as np
 import torch.nn as nn
-import json
+import logging
 
 from src.loss import *
 from src.metrics import mIoU
@@ -31,6 +31,28 @@ def main():
     paths = config['PATHS']
     hyperparameters = config['HYPERPARAMETERS']
     general = config['GENERAL']
+    """
+    Directories
+    """
+    ver_ = 0
+    while(os.path.exists(f"logs/version{ver_}/")):
+        ver_ += 1
+    version = f"logs/version{ver_}/"
+    checkpoint_path = version + "checkpoints/"
+    create_dir(checkpoint_path)
+    with open(version + 'config.txt', 'w') as configfile:
+        config.write(configfile)
+    """
+    logging
+    """
+    logging.basicConfig(filename=version + "log.log",
+                        filemode='a',
+                        format='%(asctime)s %(levelname)s %(message)s',
+                        datefmt='%H:%M:%S',
+                        level=logging.INFO)
+    logger = logging.getLogger()
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    logger.addHandler(stdout_handler)
     """ 
     Seeding 
     """
@@ -44,7 +66,7 @@ def main():
     B1 = hyperparameters.getfloat('B1')
     B2 = hyperparameters.getfloat('B2')
     weight_decay = hyperparameters.getfloat('weight_decay')
-    class_weights = [0.3, 1, 1, 1]
+    class_weights = [0.2644706,  12.33872479, 12.23935952, 17.82146076]
     gpus_ids = [0]
     """
     Paths
@@ -73,7 +95,7 @@ def main():
                                        num_workers=num_workers,
                                        pin_memory=pin_memory
                                        )
-    iter_plot_img = len(val_loader) * 5
+    iter_plot_img = len(val_loader) * 10
     """ 
     Building model 
     """
@@ -91,7 +113,7 @@ def main():
     """
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay, betas=(B1, B2))
     # optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=B1)
-    loss_fn = WeightedCrossEntropyDice(class_weights=class_weights, device=device)
+    loss_fn = WCEGeneralizedDiceLoss(class_weights=class_weights, device=device)
     # loss_fn = DiceLoss(device=device)
     metrics = mIoU(device)
     # scheduler = StepLR(optimizer=optimizer, step_size=60, gamma=0.8)
@@ -100,20 +122,16 @@ def main():
                                     min_decay_lr=1e-5,
                                     restart_interval=100,
                                     restart_lr=1e-4)
-    """
-    Directories
-    """
-    checkpoint_path = "checkpoints/" + datetime.datetime.now().strftime("%d%H%M%S_") + name_model + '/'
-    create_dir("checkpoints")
-    create_dir(checkpoint_path)
-    with open(checkpoint_path + 'experiment.ini', 'w') as configfile:
-        config.write(configfile)
-    sys.stdout = open(checkpoint_path + 'stdout.txt', 'w')
+
     # summary(model, input_size=(1, img_size, img_size), batch_size=-1)
-    print(f'Total_params:{pytorch_total_params}')
+    logger.info(f'Total_params:{pytorch_total_params}')
     """ 
     Trainer
     """
+    logger.info('**********************************************************')
+    logger.info('**************** Initialization sucessful ****************')
+    logger.info('**********************************************************')
+    logger.info('--------------------- Start training ---------------------')
     trainer(num_epochs=num_epochs,
             train_loader=train_loader,
             val_loader=val_loader,
@@ -126,8 +144,14 @@ def main():
             scheduler=scheduler,
             iter_plot_img=iter_plot_img,
             name_model=name_model,
-            base_lr=lr
+            base_lr=lr, 
+            callback_stop_value=40,
+            tb_dir = version,
+            logger=logger
             )
+    logger.info('-------------------- Finished Train ---------------------')
+    logger.info('******************* Start evaluation  *******************')
+    load_best_model = torch.load(checkpoint_path + 'model.pth')
+    loss_eval = eval(load_best_model, val_loader, loss_fn, metrics, device)
 if __name__ == '__main__':
     main()
-    sys.stdout.close()

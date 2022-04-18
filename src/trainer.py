@@ -3,7 +3,7 @@ import math
 from tqdm import tqdm
 from src.callbacks import TensorboardWriter
 from decimal import Decimal
-
+import datetime
 def trainer(num_epochs,
             train_loader,
             val_loader,
@@ -16,22 +16,24 @@ def trainer(num_epochs,
             scheduler,
             iter_plot_img,
             name_model,
-            base_lr
+            base_lr, 
+            callback_stop_value,
+            tb_dir,
+            logger
             ):
     """ Create log interface """
-    writer = TensorboardWriter(metric=metric)
+    writer = TensorboardWriter(metric=metric, name_dir=tb_dir + 'tb_' + name_model + '/')
     iter_num = 0.0
     iter_val = 0.0
+    stop_early = 0
     best_valid_loss = float("inf")
     # images, _ = next(iter(train_loader))
     # writer.save_graph(model, images)
     
     for epoch in range(num_epochs):
         lr_ = optimizer.param_groups[0]["lr"]
-        print(f"Epoch: {epoch+1}/{num_epochs} ---" +
-                f"metric:{metric.__name__} --loss_fn:{loss_fn.__name__} --" +
-                f"model:{name_model} --lr:{lr_:.3e}")
-
+        str =f"Epoch: {epoch+1}/{num_epochs} --- metric:{metric.__name__} --loss_fn:{loss_fn.__name__} --model:{name_model} --lr:{lr_:.3e}"
+        logger.info(str)
         train_loss, train_metric, iter_num, lr_ = train_fn(
             loader=train_loader,
             model=model,
@@ -57,17 +59,18 @@ def trainer(num_epochs,
         if val_loss < best_valid_loss:
             str_print = f"Valid loss improved from {best_valid_loss:2.4f} to {val_loss:2.4f}. Saving checkpoint: {checkpoint_path}"
             best_valid_loss = val_loss
-            torch.save(model, checkpoint_path + '/model.pth')
-            torch.save(model.state_dict(), checkpoint_path + "/weights.pth")
+            torch.save(model, checkpoint_path + f'/model.pth')
+            torch.save(model.state_dict(), checkpoint_path + f'/weights.pth')
+            stop_early = 0
         else:
-            str_print = f"Valid loss not improved: {best_valid_loss:2.4f}"
-
-        print(f'----> Train {metric.__name__}: {train_metric:.4f} \t Val. {metric.__name__}: {val_metric:.4f}')
-        print(f'----> Train Loss: {train_loss:.4f} \t Val. Loss: {val_loss:.4f}')
-        print(str_print)
-
-    writer.close()
-
+            stop_early += 1
+            str_print = f"Valid loss not improved: {best_valid_loss:2.4f}, ESC: {stop_early}/{callback_stop_value}"
+        if stop_early == callback_stop_value:
+            logger.info('+++++++++++++++++ Stop training early +++++++++++++')
+            break
+        logger.info(f'----> Train {metric.__name__}: {train_metric:.4f} \t Val. {metric.__name__}: {val_metric:.4f}')
+        logger.info(f'----> Train Loss: {train_loss:.4f} \t Val. Loss: {val_loss:.4f}')
+        logger.info(str_print)
 
 def train_fn(loader, model, writer, optimizer, loss_fn, device, metric, lr_, iter_num, max_epochs):
     train_loss = 0.0
@@ -142,4 +145,5 @@ def eval(model, loader, loss_fn, metric, device):
             valid_loss += loss.item()
             # update tqdm
             loop.set_postfix(metric=m0.mean(), loss=loss.item())
-    return valid_loss/len(loader), valid_iou/len(loader)
+            
+    return valid_loss/len(loader)

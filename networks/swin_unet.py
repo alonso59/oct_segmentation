@@ -845,10 +845,10 @@ class SwinUnet(nn.Module):
 
 
 def test():
-    net = SwinUnet(img_size=128, num_classes=4).cuda()
+    net = SwinUnet(img_size=224, num_classes=4).cuda()
     # net.state_dict()
     # net.load_from("../pretrained/swin_tiny_patch4_window7_224.pth", device='cuda')
-    summary(net, input_size=(1, 128, 128), batch_size=-1)
+    summary(net, input_size=(1, 224, 224), batch_size=-1)
 
 
 if __name__ == "__main__":

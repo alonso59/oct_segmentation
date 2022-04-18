@@ -34,7 +34,7 @@ class ModelSegmentation(nn.Module):
         
         if pretrain:
             model.state_dict()
-            model.load_from("pretrained/swin_tiny_patch4_window7_224.pth", self.device)
+            model.load_from("/home/alonso/Documents/torch_segmentation/pretrained/swin_tiny_patch4_window7_224.pth", self.device)
         summary(model, input_size=(in_channels, img_size, img_size), batch_size=-1)
         return model
 

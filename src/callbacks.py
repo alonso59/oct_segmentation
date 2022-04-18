@@ -5,12 +5,12 @@ from torchvision.utils import draw_segmentation_masks as drawer
 import sys
 
 
-class TensorboardWriter(SummaryWriter):
+class TensorboardWriter():
 
-    def __init__(self, metric):
+    def __init__(self, metric, name_dir):
 
         super().__init__()
-        self.writer = SummaryWriter()
+        self.writer = SummaryWriter(log_dir=name_dir)
         self.metric = metric
 
     def per_epoch(self, train_loss, val_loss, train_metric, val_metric, step):

@@ -111,7 +111,7 @@ class WCEGeneralizedDiceLoss(nn.Module):
         target1 = targets.squeeze(1).long().to(self.device)
         cross = self.CE(inputs.to(self.device), target1)
 
-        return dice_loss * 0.5 + cross * 0.5
+        return dice_loss * 0.6 + cross * 0.4
 
 def dice_score(self, inputs, targets, activation='softmax'):
     num_classes = inputs.shape[1]
