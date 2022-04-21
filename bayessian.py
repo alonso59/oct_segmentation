@@ -6,22 +6,14 @@ import torchvision.transforms as transforms
 import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
-
-from ray import tune
-from ray.tune import report
-from ray.tune.suggest.ax import AxSearch
-from src.trainer import eval
-
-from ax.plot.contour import plot_contour
-from ax.plot.trace import optimization_trace_single_method
-from ax.service.ax_client import AxClient
-from ax.utils.notebook.plotting import init_notebook_plotting, render
-from ax.utils.tutorials.cnn_utils import CNN, evaluate, load_mnist, train
-
 import sys
 
-from train import *
+from ray import tune
+from ray.tune.suggest.ax import AxSearch
+from ax.service.ax_client import AxClient
 
+from train import *
+from src.trainer import eval
 
 def experiment(parameters):
     """
@@ -53,7 +45,7 @@ def experiment(parameters):
     Hyperparameters 
     """
     batch_size = parameters.get("batch_size", 128)
-    num_epochs = 600
+    num_epochs = 1000
     lr = parameters.get("lr", 0.001)
     B1 = parameters.get("beta1", 0.9)
     B2 = parameters.get("beta2", 0.999)
@@ -116,9 +108,9 @@ def experiment(parameters):
     loss_fn = WeightedCrossEntropyDice(class_weights=class_weights, device=device)
     # loss_fn = DiceLoss(device=device)
     metrics = mIoU(device)
-    # scheduler = StepLR(optimizer=optimizer, step_size=60, gamma=0.8)
+    # scheduler = StepLR(optimizer=optimizer, step_size=int(num_epochs*0.1), gamma=0.8)
     scheduler = CyclicCosineDecayLR(optimizer,
-                                    init_decay_epochs=int(num_epochs*0.5),
+                                    init_decay_epochs=int(num_epochs*0.4),
                                     min_decay_lr=lr*0.01,
                                     restart_interval=int(num_epochs*0.1),
                                     restart_lr=lr*0.1)
@@ -145,7 +137,7 @@ def experiment(parameters):
             iter_plot_img=iter_plot_img,
             name_model=name_model,
             base_lr=lr, 
-            callback_stop_value=40,
+            callback_stop_value=int(num_epochs*0.1),
             tb_dir = version,
             logger=logger
             )
@@ -159,10 +151,10 @@ def bayessian():
     
     ax.create_experiment(name="swin_experiment",
                          parameters=[
-                            {"name": "lr", "type": "range", "bounds": [5e-4, 5e-3], "log_scale": True},
-                            {"name": "batch_size", "type": "range", "bounds": [48, 100]},
+                            {"name": "lr", "type": "range", "bounds": [7e-4, 2e-3], "log_scale": True},
+                            {"name": "batch_size", "type": "range", "bounds": [64, 100]},
                             {"name": "weight_decay", "type": "range", "bounds": [1e-5, 1e-3]},
-                            {"name": "beta1", "type": "range", "bounds": [0.5, 0.9]},
+                            {"name": "beta1", "type": "range", "bounds": [0.5, 0.7]},
                             {"name": "beta2", "type": "range", "bounds": [0.8, 0.999]}
                          ],
                          objective_name="loss_eval",
@@ -172,7 +164,7 @@ def bayessian():
     algo = AxSearch(ax_client=ax)
     # Wrap AxSearcher in a concurrently limiter, to ensure that Bayesian optimization receives the
     # data for completed trials before creating more trials
-    algo = tune.suggest.ConcurrencyLimiter(algo, max_concurrent=8)
+    algo = tune.suggest.ConcurrencyLimiter(algo, max_concurrent=4)
     tune.run(experiment,
             num_samples=40,
             search_alg=algo,

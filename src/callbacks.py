@@ -39,7 +39,7 @@ class TensorboardWriter():
         pred = F.softmax(y_pred[:4, :, :, :], dim=1)
         pred = torch.argmax(pred, dim=1)
         pred = image_tensorboard(pred, device)
-        self.writer.add_images(f'Data', x[:4, :, :, :], step)
+        self.writer.add_images(f'Data', x[:4, :, :, :] / 255., step)
         self.writer.add_images(f'Ground truth', gt.unsqueeze(1), step)
         self.writer.add_images(f'Prediction', pred.unsqueeze(1), step)
 

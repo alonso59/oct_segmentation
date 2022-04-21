@@ -21,7 +21,7 @@ class ImagesFromFolder(Dataset):
     def __getitem__(self, index):
         img_path = os.path.join(self.image_dir, self.images[index])
         mask_path = os.path.join(self.mask_dir, self.images[index])
-        image = np.array(Image.open(img_path)) / 255.
+        image = np.array(Image.open(img_path)) #/ 255.
 
         mask = np.array(Image.open(mask_path))
 
@@ -43,10 +43,11 @@ def loaders(train_imgdir,
 
     train_transforms = T.Compose(
         [
-
             T.Rotate(limit=(-20, 20), p=1.0),
             T.HorizontalFlip(p=0.5),
-            # T.Affine(scale=(0.8, 1.2), p=0.5),
+            T.Affine(scale=(0.9, 1.1), p=0.5),
+            T.RandomContrast(limit=0.2, p=0.5),
+            T.CLAHE(clip_limit=2.0, tile_grid_size=(3, 3), p=0.5),
             ToTensorV2(),
         ]
     )
@@ -87,20 +88,21 @@ def loaders(train_imgdir,
 def test():
     train_transforms = T.Compose(
         [
-            T.Rotate(limit=(-15, 15), p=1.0),
+            T.Rotate(limit=(-20, 20), p=1.0),
             T.HorizontalFlip(p=0.5),
-            # T.Affine(scale=(0.9, 1.1), p=0.5),
-            # T.CLAHE(clip_limit=2.0, tile_grid_size=(3, 3), p=1.0)
+            T.Affine(scale=(0.9, 1.1), p=1.0),
+            T.RandomBrightnessContrast(brightness_limit=0.5, contrast_limit=0.5,p=1.0),
+            T.CLAHE(clip_limit=2.0, tile_grid_size=(3, 3), p=1.0),
         ]
     )
-    train_ds = ImagesFromFolder(image_dir='../dataset/data_128/train_images',
-                                mask_dir='../dataset/data_128/train_masks',
+    train_ds = ImagesFromFolder(image_dir='dataset/data_224_3C/train_images',
+                                mask_dir='dataset/data_224_3C/train_masks',
                                 transform=train_transforms,
                                 )
     randint = np.random.randint(low=0, high=len(train_ds))
     imgs=[]
     msks=[]
-    for i in range(10):
+    for i in range(2):
         image, mask = train_ds[randint]
         imgs.append(image)
         msks.append(mask)

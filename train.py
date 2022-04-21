@@ -12,11 +12,8 @@ from src.metrics import mIoU
 from src.trainer import trainer
 from src.dataset import loaders
 from src.utils import create_dir, seeding
-
 from scheduler import CyclicCosineDecayLR
-
 from models import ModelSegmentation
-
 from matplotlib import pyplot as plt
 from torch.optim.lr_scheduler import StepLR, ExponentialLR
 
@@ -113,15 +110,15 @@ def main():
     """
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay, betas=(B1, B2))
     # optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=B1)
-    loss_fn = WCEGeneralizedDiceLoss(class_weights=class_weights, device=device)
+    loss_fn = WeightedCrossEntropyDice(class_weights=class_weights, device=device)
     # loss_fn = DiceLoss(device=device)
     metrics = mIoU(device)
     # scheduler = StepLR(optimizer=optimizer, step_size=60, gamma=0.8)
     scheduler = CyclicCosineDecayLR(optimizer,
-                                    init_decay_epochs=400,
-                                    min_decay_lr=1e-5,
-                                    restart_interval=100,
-                                    restart_lr=1e-4)
+                                    init_decay_epochs=int(num_epochs*0.4),
+                                    min_decay_lr=lr*0.01,
+                                    restart_interval=int(num_epochs*0.1),
+                                    restart_lr=lr*0.1)
 
     # summary(model, input_size=(1, img_size, img_size), batch_size=-1)
     logger.info(f'Total_params:{pytorch_total_params}')
@@ -145,7 +142,7 @@ def main():
             iter_plot_img=iter_plot_img,
             name_model=name_model,
             base_lr=lr, 
-            callback_stop_value=40,
+            callback_stop_value=int(num_epochs*0.1),
             tb_dir = version,
             logger=logger
             )
