@@ -1,9 +1,7 @@
 {
-	"folders": [
-		{
-			"name": "torch_segmentation",
-			"path": "."
-		}
-	],
-	"settings": {}
+    "folders": [
+        {
+            "path": "."
+        }
+    ]
 }

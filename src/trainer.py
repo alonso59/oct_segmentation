@@ -1,10 +1,8 @@
 import torch
 import math
 from tqdm import tqdm
-from src.callbacks import TensorboardWriter
-from decimal import Decimal
-import datetime
-import src.settings as cfg
+from callbacks import TensorboardWriter
+import settings as cfg
 
 def trainer(num_epochs,
             train_loader,

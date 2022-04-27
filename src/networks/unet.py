@@ -4,7 +4,7 @@ from torch.nn import functional as F
 from torchsummary import summary
 
 
-class Unet(nn.Module):
+class UNet(nn.Module):
     """
     Paper: `U-Net: Convolutional Networks for Biomedical Image Segmentation
     <https://arxiv.org/abs/1505.04597>`_
@@ -66,7 +66,6 @@ class Unet(nn.Module):
         for i, layer in enumerate(self.layers[self.num_layers : -1]):
             xi[-1] = layer(xi[-1], xi[-2 - i])
         return self.layers[-1](xi[-1])
-
 
 class DoubleConv(nn.Module):
     """[ Conv2d => BatchNorm (optional) => ReLU ] x 2."""

@@ -1,26 +1,21 @@
 import os
 import sys
-from tabnanny import verbose
-import torch
-import datetime
-import numpy as np
-import torch.nn as nn
 import logging
-import src.settings as cfg
-from src.loss import *
-from src.metrics import mIoU
-from src.trainer import trainer, eval
-from src.dataset import loaders
-from src.utils import create_dir, seeding
-from scheduler import CyclicCosineDecayLR
-from models import ModelSegmentation
-from matplotlib import pyplot as plt
-from torch.optim.lr_scheduler import StepLR, ExponentialLR
+import torch
+import torch.nn as nn
+import settings as cfg
 import segmentation_models_pytorch as smp
-from pytorch_model_summary import summary as sm
+from metrics import mIoU
+from trainer import trainer, eval
+from dataset import loaders
+from utils import create_dir, seeding
+from models import SegmentationModels
+from matplotlib import pyplot as plt
+from scheduler import CyclicCosineDecayLR
+from torch.optim.lr_scheduler import StepLR, ExponentialLR
+from loss import WCEGeneralizedDiceLoss, DiceLoss, CrossEntropyLoss, BinaryCrossEntropyLoss
 # import torch.utils.tensorboard
-from torchsummary import summary
-import configparser
+from pytorch_model_summary import summary as sm
 
 
 def main():
@@ -33,51 +28,45 @@ def main():
     B1 = cfg.BETA1
     B2 = cfg.BETA2
     weight_decay = cfg.WEIGHT_DECAY
-    # class_weights = [0.2644706,  12.33872479, 12.23935952, 17.82146076]
-    class_weights = [1, 1, 1, 1]
+    class_weights = cfg.CLASS_WEIGHTS
     gpus_ids = cfg.GPUS_ID
     """
     General settings
     """
     n_classes = cfg.CLASSES
     img_size = cfg.IMAGE_SIZE
-    pretrain = cfg.PRETRAIN
     device = torch.device(f"cuda" if torch.cuda.is_available() else 'cpu')
+    iter_plot_img = cfg.EPOCHS // 80
+    """ 
+    Building model 
+    """
+    
+    models_class = SegmentationModels(device, in_channels=3, img_size=img_size, n_classes=n_classes)
+    model, preprocess_input = models_class.Unet_backbone(encoder_name='resnet18', encoder_weights='imagenet')
+    try:
+        name_model = model.__name__
+    except:
+        name_model = 'unet_backbone'
+        pass
+   
+    models_class.summary(logger=logger)
+    pytorch_total_params = sum(p.numel() for p in model.parameters())
+    print(preprocess_input)
+    logger.info(f'Total_params:{pytorch_total_params}')
+    sys.exit()
     """ 
     Getting loader
     """
-    # model, preprocess_input = smp_model()
-    # model = model.to(device)
     train_loader, val_loader = loaders(train_imgdir=cfg.TRAIN_IMAGES,
                                        train_maskdir=cfg.TRAIN_MASKS,
                                        val_imgdir=cfg.VAL_IMAGES,
                                        val_maskdir=cfg.VAL_MASKS,
                                        batch_size=cfg.BATCH_SIZE,
-                                       num_workers=os.cpu_count(),
+                                       num_workers=cfg.NUM_WORKERS,
                                        pin_memory=True,
-                                       preprocess_input=None#preprocess_input
+                                       preprocess_input=preprocess_input
                                        )
-    iter_plot_img = cfg.EPOCHS // 80
-    """ 
-    Building model 
-    """
-    models_class = ModelSegmentation(device)
-    model = models_class.swin_unet(
-        n_classes=n_classes, 
-        img_size=img_size, 
-        pretrain=pretrain,
-        embed_dim=cfg.embed_dim,
-        depths=cfg.depths,
-        num_heads=cfg.num_heads,
-        window_size=cfg.window_size,
-        drop_path_rate=cfg.dropout,
-    )
     
-    # model = models_class.unet(in_channels=1, n_classes=n_classes, img_size=img_size, feature_start=16,
-    #                           layers=5, bilinear=False, dropout=0.1, kernel_size=3, stride=1, padding=1)
-    name_model = model.__name__
-    # name_model = 'FPN_resnet18'
-    pytorch_total_params = sum(p.numel() for p in model.parameters())
     if len(gpus_ids) > 1:
         print("Data parallel...")
         model = nn.DataParallel(model, device_ids=gpus_ids)
@@ -96,9 +85,6 @@ def main():
                                     min_decay_lr=lr / 10,
                                     restart_interval=num_epochs // 10,
                                     restart_lr=lr / 5)
-    logger.info(sm(model, torch.zeros((1, 1, img_size, img_size)).to(device), show_input=False))
-    # summary(model, input_size=(3, img_size, img_size), batch_size=cfg.BATCH_SIZE)
-    logger.info(f'Total_params:{pytorch_total_params}')
     """ 
     Trainer
     """
@@ -172,18 +158,6 @@ def initialize():
     """
     seeding(42)  # 42
     return logger, checkpoint_path, version
-
-def smp_model():
-    from segmentation_models_pytorch.encoders import get_preprocessing_fn
-    model = smp.FPN(
-    encoder_name="resnet18",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
-    encoder_weights="imagenet",     # use `imagenet` pre-trained weights for encoder initialization
-    in_channels=3,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
-    classes=cfg.CLASSES,                      # model output channels (number of classes in your dataset)
-    )
-    preprocess_input = get_preprocessing_fn('resnet18', pretrained='imagenet')
-    return model, preprocess_input
-
 
 
 if __name__ == '__main__':
