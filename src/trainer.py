@@ -4,6 +4,8 @@ from tqdm import tqdm
 from src.callbacks import TensorboardWriter
 from decimal import Decimal
 import datetime
+import src.settings as cfg
+
 def trainer(num_epochs,
             train_loader,
             val_loader,
@@ -16,7 +18,6 @@ def trainer(num_epochs,
             scheduler,
             iter_plot_img,
             name_model,
-            base_lr, 
             callback_stop_value,
             tb_dir,
             logger
@@ -27,14 +28,12 @@ def trainer(num_epochs,
     iter_val = 0.0
     stop_early = 0
     best_valid_loss = float("inf")
-    # images, _ = next(iter(train_loader))
-    # writer.save_graph(model, images)
-    
+
     for epoch in range(num_epochs):
         lr_ = optimizer.param_groups[0]["lr"]
-        str =f"Epoch: {epoch+1}/{num_epochs} --- metric:{metric.__name__} --loss_fn:{loss_fn.__name__} --model:{name_model} --lr:{lr_:.3e}"
+        str = f"Epoch: {epoch+1}/{num_epochs} --loss_fn:{loss_fn.__name__} --model:{name_model} --lr:{lr_:.4e}"
         logger.info(str)
-        train_loss, train_metric, iter_num, lr_ = train_fn(
+        train_loss, train_metric, iter_num, lr_ = train(
             loader=train_loader,
             model=model,
             writer=writer,
@@ -42,18 +41,14 @@ def trainer(num_epochs,
             loss_fn=loss_fn,
             device=device,
             metric=metric,
-            lr_=base_lr,
             iter_num=iter_num,
-            max_epochs=num_epochs,
         )
 
         scheduler.step()
+        writer.learning_rate(optimizer.param_groups[0]["lr"], epoch)
+        val_loss, val_metric, iter_val = validation(model, val_loader, loss_fn, metric, device, iter_val, writer, iter_plot_img)
 
-        val_loss, val_metric, iter_val = validation(
-            model, val_loader, loss_fn, metric, device, iter_val, writer, lr_, iter_plot_img)
-
-        writer.per_epoch(train_loss=train_loss, val_loss=val_loss,
-                         train_metric=train_metric, val_metric=val_metric, step=epoch)
+        writer.per_epoch(train_loss=train_loss, val_loss=val_loss, train_metric=train_metric, val_metric=val_metric, step=epoch)
 
         """ Saving the model """
         if val_loss < best_valid_loss:
@@ -71,13 +66,14 @@ def trainer(num_epochs,
         logger.info(f'----> Train {metric.__name__}: {train_metric:.4f} \t Val. {metric.__name__}: {val_metric:.4f}')
         logger.info(f'----> Train Loss: {train_loss:.4f} \t Val. Loss: {val_loss:.4f}')
         logger.info(str_print)
+    torch.save(model, checkpoint_path + f'/model_last.pth')
+    torch.save(model.state_dict(), checkpoint_path + f'/model_last.pth')
 
-def train_fn(loader, model, writer, optimizer, loss_fn, device, metric, lr_, iter_num, max_epochs):
+def train(loader, model, writer, optimizer, loss_fn, device, metric, iter_num):
     train_loss = 0.0
     train_iou = 0.0
     loop = tqdm(loader, ncols=120)
     model.train()
-    max_iterations = max_epochs * len(loader)
     for batch_idx, (x, y) in enumerate(loop):
         x = x.type(torch.float).to(device)
         y = y.type(torch.long).to(device)
@@ -95,15 +91,17 @@ def train_fn(loader, model, writer, optimizer, loss_fn, device, metric, lr_, ite
         train_iou += m0.mean()
         train_loss += loss.item()
         # update tqdm loop
-        loop.set_postfix(metric=m0.mean(), loss=loss.item())
+        if cfg.CLASSES == 3:
+            loop.set_postfix(BG=m0[0], OPL=m0[1], EZ=m0[2], loss=loss.item())
+        if cfg.CLASSES == 4:
+            loop.set_postfix(BG=m0[0], OPL=m0[1], EZ=m0[2], ELM=m0[2], loss=loss.item())
         # tensorboard callbacks
         writer.per_iter(loss.item(), m0.mean(), iter_num, name='Train')
-        writer.learning_rate(optimizer.param_groups[0]["lr"], iter_num)
         iter_num = iter_num + 1
-    return train_loss/len(loader), train_iou/len(loader), iter_num, optimizer.param_groups[0]["lr"]
+    return train_loss / len(loader), train_iou / len(loader), iter_num, optimizer.param_groups[0]["lr"]
 
 
-def validation(model, loader, loss_fn, metric, device, iter_val, writer, lr_, iter_plot_img):
+def validation(model, loader, loss_fn, metric, device, iter_val, writer, iter_plot_img):
     valid_loss = 0.0
     valid_iou = 0.0
     loop = tqdm(loader, ncols=120)
@@ -118,32 +116,28 @@ def validation(model, loader, loss_fn, metric, device, iter_val, writer, lr_, it
             # accumulate metrics and loss items
             valid_iou += m0.mean()
             valid_loss += loss.item()
-            # update tqdm
-            loop.set_postfix(metric=m0.mean(), loss=loss.item())
+            if cfg.CLASSES == 3:
+                loop.set_postfix(BG=m0[0], OPL=m0[1], EZ=m0[2], loss=loss.item())
+            if cfg.CLASSES == 4:
+                loop.set_postfix(BG=m0[0], OPL=m0[1], EZ=m0[2], ELM=m0[2], loss=loss.item())
             # tensorboard callbacks
             writer.per_iter(loss.item(), m0.mean(), iter_val, name='Val')
-            if iter_val % iter_plot_img == 0:
+            if iter_val % (len(loader)*iter_plot_img/2) == 0:
                 writer.save_images(x, y, y_pred, iter_val, device)
             iter_val += 1
+    return valid_loss / len(loader), valid_iou / len(loader), iter_val
 
-    return valid_loss/len(loader), valid_iou/len(loader), iter_val
 
-def eval(model, loader, loss_fn, metric, device):
-    valid_loss = 0.0
-    valid_iou = 0.0
-    loop = tqdm(loader, ncols=120)
+def eval(model, loader, loss_fn, device):
+    eval_loss = 0.0
+    eval_loss = 0.0
     model.eval()
     with torch.no_grad():
-        for batch_idx, (x, y) in enumerate(loop):
+        for batch_idx, (x, y) in enumerate(loader):
             x = x.type(torch.float).to(device)
             y = y.type(torch.long).to(device)
             y_pred = model(x)
             loss = loss_fn(y_pred, y)
-            m0 = metric(y_pred, y)
             # accumulate metrics and loss items
-            valid_iou += m0.mean()
-            valid_loss += loss.item()
-            # update tqdm
-            loop.set_postfix(metric=m0.mean(), loss=loss.item())
-            
-    return valid_loss/len(loader)
+            eval_loss += loss.item()
+    return eval_loss / len(loader)

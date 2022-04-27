@@ -28,9 +28,30 @@ class ModelSegmentation(nn.Module):
 
         return model
 
-    def swin_unet(self, in_channels=3, n_classes=1, img_size=224, pretrain=True):
+    def swin_unet(self, 
+    in_channels=3, 
+    n_classes=1, 
+    img_size=224, 
+    pretrain=True,
+    embed_dim=96,
+    depths=[2, 2, 6, 2],
+    num_heads=[3, 6, 12, 24],
+    window_size=7,
+    drop_path_rate=0.1,
+    ):
 
-        model = SwinUnet(in_chans=in_channels, img_size=img_size, num_classes=n_classes).to(self.device)
+        model = SwinUnet(
+                in_chans=in_channels, 
+                img_size=img_size, 
+                num_classes=n_classes, 
+                zero_head=False,
+                patch_size=4,
+                embed_dim=embed_dim,
+                depths=depths,
+                num_heads=num_heads,
+                window_size=window_size,
+                drop_path_rate=drop_path_rate,
+        ).to(self.device)
         
         if pretrain:
             model.state_dict()

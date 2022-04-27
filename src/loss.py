@@ -67,8 +67,8 @@ class WeightedCrossEntropyDice(nn.Module):
         dice_loss = dice_score(self, inputs=inputs, targets=targets, activation=self.activation)
 
         # Compute categorical cross entropy
-        target1 = targets.squeeze(1).long().to(self.device)
-        cross = self.CE(inputs.to(self.device), target1)
+        target1 = targets.squeeze(1)
+        cross = self.CE(inputs, target1)
 
         return dice_loss * 0.6 + cross * 0.4
 

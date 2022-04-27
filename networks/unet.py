@@ -81,6 +81,8 @@ class DoubleConv(nn.Module):
             nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True),
         ]
+        if dp != 0.0:
+            layers.append(nn.Dropout(dp))
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):

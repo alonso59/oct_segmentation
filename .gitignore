@@ -4,4 +4,5 @@ dataset/
 data4/
 checkpoints/
 __pycache__/
-logs
+logs/
+new_dataset/
