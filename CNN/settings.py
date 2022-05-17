@@ -1,0 +1,34 @@
+import os
+""" Dataset directories """
+DATASET_DIR = 'OCT_DATASET/dataset/224_3C_May/'
+
+TRAIN_IMAGES = DATASET_DIR + 'train_images/'
+TRAIN_MASKS = DATASET_DIR + 'train_masks/'
+VAL_IMAGES = DATASET_DIR + 'val_images/'
+VAL_MASKS = DATASET_DIR + 'val_masks/'
+
+""" HYPER-PARAMETERS """
+LOSS_FN = 'dice loss'
+EPOCHS = 1000
+BATCH_SIZE = 64
+LEARNING_RATE = 0.001
+BETA1 = 0.9
+BETA2 = 0.999
+WEIGHT_DECAY = 0.0001
+CLASS_WEIGHTS = [1, 1, 1, 1]
+SCHEDULER = 'cosine' #step, cosine
+GAMMA = 0.7
+STEP_SIZE = EPOCHS * 0.1
+GPUS_ID = [0]
+PRETRAIN = True
+
+""" GERNERAL SETTINGS """
+IMAGE_SIZE = 224
+CLASSES = 4
+NUM_WORKERS = os.cpu_count()
+
+EMBED_DIM = 96
+DEPTHS = [2, 2, 6, 2]
+NUM_HEADS = [3, 6, 12 ,24]
+WINDOW_SIZE = 7
+DROPOUT = 0.1

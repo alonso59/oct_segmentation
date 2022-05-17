@@ -1,0 +1,6 @@
+15:29:29 INFO Initializing Ray automatically.For cluster usage or custom Ray initialization, call `ray.init(...)` before `tune.run`.
+15:30:37 INFO Initializing Ray automatically.For cluster usage or custom Ray initialization, call `ray.init(...)` before `tune.run`.
+15:31:58 INFO Initializing Ray automatically.For cluster usage or custom Ray initialization, call `ray.init(...)` before `tune.run`.
+03:55:40 INFO {'lr': 0.0006822357062795395, 'batch_size': 107, 'weight_decay': 0.00012320834289662988, 'beta1': 0.7771051041113208, 'beta2': 0.8998806219746585}
+03:55:40 INFO {'loss_eval': 0.1046749729843704}
+03:55:40 INFO {'loss_eval': {'loss_eval': 1.8920370836297183e-07}}

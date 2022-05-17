@@ -1,0 +1,19 @@
+OCT_PATH = "OCT_DATASET/dataset/OCT3/"
+
+DATASET_BASE = "OCT_DATASET/dataset/224_3C_May/"
+
+IMAGES_PATH = DATASET_BASE + "Images/"
+ANN_PATH = DATASET_BASE + "Annotations/"
+MASK_PATH = DATASET_BASE + "Masks/"
+TRAIN_IMAGES = DATASET_BASE + "Images_train_large/"
+TRAIN_MASKS = DATASET_BASE + "Masks_train_large/"
+VAL_IMAGES = DATASET_BASE + "Images_val_large/"
+VAL_MASKS = DATASET_BASE + "Masks_val_large/"
+TRAIN_IMAGES_CROP = DATASET_BASE + "train_images/"
+TRAIN_MASKS_CROP = DATASET_BASE + "train_masks/"
+VAL_IMAGES_CROP = DATASET_BASE + "val_images/"
+VAL_MASKS_CROP = DATASET_BASE + "val_masks/"
+
+TRAIN_SIZE = 0.85
+IMAGE_SIZE = 224
+SHIFT = 74

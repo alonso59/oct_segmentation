@@ -6,3 +6,6 @@ checkpoints/
 __pycache__/
 logs/
 new_dataset/
+logs/
+OCT_DATASET/dataset/*
+CNN/pretrained/*
