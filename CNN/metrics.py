@@ -21,11 +21,11 @@ class Accuracy(nn.Module):
         true_1_hot = true_1_hot.type(y_pr.type())
         dims = (0,) + tuple(range(2, y_gt.ndimension()))
         # Getting probabilities
-        y_pr = F.softmax(y_pr, dim=1)
-
-        y_pr = torch.argmax(y_pr, dim=1).unsqueeze(1)
+        y_pr = F.softmax(y_pr, dim=1).unsqueeze(1)
+        y_pr = y_pr.reshape(-1)
+        true_1_hot = true_1_hot.reshape(-1)
         tp = torch.sum(true_1_hot == y_pr)
-        score = tp / true_1_hot.reshape(-1).shape[0]
+        score = tp / true_1_hot.shape[0]
         return score
 
 
@@ -40,6 +40,7 @@ class mIoU(nn.Module):
 
     def forward(self, logits, true, eps=1e-5):
         num_classes = logits.shape[1]
+        # print(true.squeeze(1).size())
         true_1_hot = torch.eye(num_classes)[true.squeeze(1)]
         true_1_hot = true_1_hot.permute(0, 3, 1, 2).float()
         true_1_hot = true_1_hot.type(true.type()).to(self.device)

@@ -105,16 +105,19 @@ def validation(model, loader, loss_fn, metric, device, iter_val, writer, iter_pl
     return valid_loss / len(loader), valid_iou / len(loader), iter_val
 
 
-def eval(model, loader, loss_fn, device):
+def eval(model, loader, loss_fn, metric, device):
     eval_loss = 0.0
+    eval_iou = 0.0
     model.eval()
     for batch_idx, (x, y) in enumerate(loader):
         x = x.type(torch.float).to(device)
         y = y.type(torch.long).to(device)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
+        iou = metric(y_pred, y)
         eval_loss += loss.item()
-    return eval_loss / len(loader)
+        eval_iou += iou.mean()
+    return eval_loss / len(loader), eval_iou / len(loader)
 
 
 def update_loop(loop, metric, loss, classes):

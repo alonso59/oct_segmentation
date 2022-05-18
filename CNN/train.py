@@ -30,10 +30,10 @@ def main():
     n_classes = cfg.CLASSES
     img_size = cfg.IMAGE_SIZE
     device = torch.device(f"cuda" if torch.cuda.is_available() else 'cpu')
-    iter_plot_img = cfg.EPOCHS // 5
+    iter_plot_img = cfg.EPOCHS // 20
     """ Building model """
     models_class = SegmentationModels(device, in_channels=3, img_size=img_size, n_classes=n_classes)
-    model, preprocess_input = models_class.UNet(feature_start=32, layers=4, kernel_size=3, padding=1, dropout=0.1)
+    model, preprocess_input = models_class.UNet(feature_start=32, layers=3, kernel_size=5, padding=2, dropout=0.1)
     # model, preprocess_input = models_class.SwinUnet(
     #     pretrain=True,
     #     embed_dim=cfg.EMBED_DIM,
