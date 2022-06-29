@@ -269,50 +269,50 @@ def prediction(image, mask):
 def main():
     files = get_filenames('OCT_DATASET/dataset/224_3C_May/Images_val_large/', 'tiff')
     filesM = get_filenames('OCT_DATASET/dataset/224_3C_May/Masks_val_large/', 'tiff')
-    duke = get_filenames('OCT_DATASET/dataset/DUKE_bscans/AMD/', 'png')
-    for I in duke:
-        inference_simple_path(I)
+    # duke = get_filenames('OCT_DATASET/dataset/DUKE_bscans/AMD/', 'png')
+    # for I in duke:
+    #     inference_simple_path(I)
 
-    # inference_patches('OCT_DATASET/dataset/224_3C_May/val_images', 'OCT_DATASET/dataset/224_3C_May/val_masks')
-    # plot_inference()
-    # iou1 = []
-    # fileImage = []
-    # for I, M in zip(files, filesM):
-    #     iou1.append(inference_path_compared(I, M))
-    #     fileImage.append(os.path.split(I)[1])
-    # iou = np.array(iou1)
-    # print(iou.mean())
+    inference_patches('OCT_DATASET/dataset/224_3C_May/val_images', 'OCT_DATASET/dataset/224_3C_May/val_masks')
+    plot_inference()
+    iou1 = []
+    fileImage = []
+    for I, M in zip(files, filesM):
+        iou1.append(inference_path_compared(I, M))
+        fileImage.append(os.path.split(I)[1])
+    iou = np.array(iou1)
+    print(iou.mean())
 
-    # df2 = pd.DataFrame({'file': fileImage,
-    #                     'iou': iou1,
-    #                     })
-    # df2.to_csv('predictions.csv')
-    # iou.sort()
-    # hmean = np.mean(iou)
-    # hstd = np.std(iou)
-    # median, q1, q3 = np.percentile(iou, 50), np.percentile(iou, 25), np.percentile(iou, 75)
-    # sigma = hstd
-    # mu = hmean
-    # iqr = 1.5 * (q3 - q1)
-    # x1 = np.linspace(q1 - iqr, q1)
-    # x2 = np.linspace(q3, q3 + iqr)
-    # pdf1 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(x1 - mu)**2 / (2 * sigma**2))
-    # pdf2 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(x2 - mu)**2 / (2 * sigma**2))
+    df2 = pd.DataFrame({'file': fileImage,
+                        'iou': iou1,
+                        })
+    df2.to_csv('predictions.csv')
+    iou.sort()
+    hmean = np.mean(iou)
+    hstd = np.std(iou)
+    median, q1, q3 = np.percentile(iou, 50), np.percentile(iou, 25), np.percentile(iou, 75)
+    sigma = hstd
+    mu = hmean
+    iqr = 1.5 * (q3 - q1)
+    x1 = np.linspace(q1 - iqr, q1)
+    x2 = np.linspace(q3, q3 + iqr)
+    pdf1 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(x1 - mu)**2 / (2 * sigma**2))
+    pdf2 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(x2 - mu)**2 / (2 * sigma**2))
 
-    # print(f'Mean:{hmean}, Std:{hstd}')
-    # print(len(iou))
-    # pdf = stats.norm.pdf(iou, hmean, hstd)
-    # pl.plot(iou, pdf, '-o', label=f'Mean:{hmean:0.3f}, Std:{hstd:0.3f}, Q1:{q1:0.3f}, Q3:{q3:0.3f}')
+    print(f'Mean:{hmean}, Std:{hstd}')
+    print(len(iou))
+    pdf = stats.norm.pdf(iou, hmean, hstd)
+    pl.plot(iou, pdf, '-o', label=f'Mean:{hmean:0.3f}, Std:{hstd:0.3f}, Q1:{q1:0.3f}, Q3:{q3:0.3f}')
 
-    # arran = np.linspace(0.5, 1, num=(len(iou)))
-    # pl.hist(iou, bins=arran, edgecolor='black')
-    # pl.fill_between(x1, pdf1, 0, alpha=.6, color='green')
-    # pl.fill_between(x2, pdf2, 0, alpha=.6, color='green')
-    # plt.xlim([0.4, 1.1])
-    # plt.xlabel('IoU')
-    # plt.ylabel('No. Images')
-    # plt.legend(loc='best')
-    # plt.savefig('test_best.png')
+    arran = np.linspace(0.5, 1, num=(len(iou)))
+    pl.hist(iou, bins=arran, edgecolor='black')
+    pl.fill_between(x1, pdf1, 0, alpha=.6, color='green')
+    pl.fill_between(x2, pdf2, 0, alpha=.6, color='green')
+    plt.xlim([0.4, 1.1])
+    plt.xlabel('IoU')
+    plt.ylabel('No. Images')
+    plt.legend(loc='best')
+    plt.savefig('test_best.png')
 
 
 if __name__ == '__main__':

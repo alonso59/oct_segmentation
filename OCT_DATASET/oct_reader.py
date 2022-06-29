@@ -96,13 +96,11 @@ def get_images_masks(file):
             data1[BM[i], i, :] = [0, 255, 255]
 
             # OPL
-            mask[INL[i]:OPL[i], i] = 2 if INL[i] <= OPL[i] and INL[i] > 0 and OPL[i] > 0 else mask[INL[i]:OPL[i], i]
+            mask[INL[i]:OPL[i], i] = 1 if INL[i] <= OPL[i] and INL[i] > 0 and OPL[i] > 0 else mask[INL[i]:OPL[i], i]
             # ELM
-            mask[ELM[i]:PR1[i], i] = 3 if ELM[i] <= PR1[i] and ELM[i] > 0 and PR1[i] > 0 else mask[ELM[i]:PR1[i], i]
+            mask[ELM[i]:PR1[i], i] = 2 if ELM[i] <= PR1[i] and ELM[i] > 0 and PR1[i] > 0 else mask[ELM[i]:PR1[i], i]
             # EZ
-            mask[PR1[i]:PR2[i], i] = 1 if PR1[i] <= PR2[i] and PR1[i] > 0 and PR2[i] > 0 else mask[PR1[i]:PR2[i], i]
-            
-            
+            mask[PR1[i]:PR2[i], i] = 255 if PR1[i] <= PR2[i] and PR1[i] > 0 and PR2[i] > 0 else 0
             # mask[BM[i], i] = 4 if BM[i] > 0 else 0
 
         mask1 = Image.fromarray(mask)

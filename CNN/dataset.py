@@ -6,20 +6,8 @@ from torch.utils.data import DataLoader, Dataset
 from skimage.restoration import denoise_tv_chambolle
 from albumentations.core.transforms_interface import ImageOnlyTransform
 from utils import visualize
+import sys
 
-
-class ImagesFromHDF5(Dataset):
-    def __init__(self, hdf5, transform=None, preprocess_input=None):
-        self.hdf5 = hdf5
-        self.transform = transform
-        self.preprocess_input = preprocess_input
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, index):
-        images = self.inputs['data'][index]
-        masks = self.inputs['data'][index]
 
 class ImagesFromFolder(Dataset):
     def __init__(self, image_dir, mask_dir, transform=None, preprocess_input=None):
@@ -37,23 +25,25 @@ class ImagesFromFolder(Dataset):
         mask_path = os.path.join(self.mask_dir, self.images[index])
 
         # read data
-        image = np.array(cv2.imread(img_path, cv2.IMREAD_COLOR))
-        mask = np.array(cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE))
-        
+        # try:
+        # image = np.array(cv2.imread(img_path, cv2.IMREAD_COLOR))
+        # mask = np.array(cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE))
+        # except:
+        image = np.load(img_path)
+        mask = np.load(mask_path)
+
+        image = np.expand_dims(image, axis=-1)
+        image = np.repeat(image, 3, axis=-1).astype('uint8')
+
         if self.transform is not None:
             augmentations = self.transform(image=image, mask=mask)
             image = augmentations["image"]
             mask = augmentations["mask"]
-        try:
-            image = image.transpose(0, 1, 2).astype('float32') / 255.
-        except:
-            image = np.expand_dims(image, axis=-1).astype('float32') / 255.
-            image = np.repeat(image, 3, axis=-1)
 
-        if self.preprocess_input is not None:
-            preprocessing = get_preprocessing(self.preprocess_input)
-            augmentations = preprocessing(image=image)
-            image = augmentations["image"]
+        # if self.preprocess_input is not None and False:
+        #     preprocessing = get_preprocessing(self.preprocess_input)
+        #     augmentations = preprocessing(image=image)
+        #     image = augmentations["image"]
         image = image.transpose(2, 0, 1)
         mask = np.expand_dims(mask, axis=0)
         return image, mask
@@ -70,26 +60,31 @@ def loaders(train_imgdir,
             ):
 
     train_transforms = T.Compose(
-        [
+        [   
             GrayGammaTransform(p=0.5),
-            T.Rotate(limit=(-40, 40), p=1.0, border_mode=cv2.BORDER_CONSTANT),
+            T.Rotate(limit=(-20, 20), p=1.0, border_mode=cv2.BORDER_CONSTANT),
             T.HorizontalFlip(p=0.5),
+            # T.RandomBrightnessContrast(p=0.3),
             T.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, p=0.5),
             T.Affine(scale=(0.95, 1.05), p=0.5),
             T.CLAHE(clip_limit=2.0, tile_grid_size=(3, 3), p=0.5),
-            TVDenoising(p=0.5)
+            # TVDenoising(p=0.3),
+            T.Normalize(mean=(0.1338, 0.1338, 0.1338), std=(0.1466, 0.1466, 0.1466))
         ]
     )
-
+    val_transforms = T.Compose(
+        [
+            T.Normalize(mean=(0.1338, 0.1338, 0.1338), std=(0.1466, 0.1466, 0.1466))
+        ]
+    )
     train_ds = ImagesFromFolder(image_dir=train_imgdir,
                                 mask_dir=train_maskdir,
                                 transform=train_transforms,
                                 preprocess_input=preprocess_input
                                 )
-
     val_ds = ImagesFromFolder(image_dir=val_imgdir,
                               mask_dir=val_maskdir,
-                              transform=None,
+                              transform=val_transforms,
                               preprocess_input=preprocess_input
                               )
 
@@ -139,42 +134,31 @@ class TVDenoising(ImageOnlyTransform):
 
 
 def gray_log(img):
-    try:
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) / 255.
-    except:
-        gray = img / 255.
+    gray = img / 255.
     c = np.log10(1 + np.max(gray))
     out = c * np.log(1 + gray)
-    out = out * 255
-    print(c)
-    return out.astype(np.uint8)
+    return out
 
 
 def gray_gamma(img):
     gamma = np.random.uniform(0.5, 2)
-    try:
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) / 255.
-    except:
-        gray = img / 255.
-    out = np.array(255*(gray) ** gamma, dtype = 'uint8')
-    return out
+    gray = img / 255.
+    out = np.array(gray ** gamma)
+    out = 255*out
+    return out.astype('uint8')
 
 
 def tv_denoising(img):
     w = np.random.uniform(0, 0.1)
-    try:
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    except:
-        gray = img
+    gray = img / 255.
     out = denoise_tv_chambolle(gray, weight=w)
     out = out * 255
-    return out.astype(np.uint8)
+    return out.astype('uint8')
 
 
 def test():
     train_transforms = T.Compose(
         [
-            # GrayLogTransform(p=1.0),
             GrayGammaTransform(p=1.0),
             T.Rotate(limit=(-40, 40), p=1.0, border_mode=cv2.BORDER_CONSTANT),
             T.HorizontalFlip(p=0.5),
@@ -191,7 +175,7 @@ def test():
     randint = np.random.randint(low=0, high=len(train_ds))
     imgs = []
     msks = []
-    for i in range(3):
+    for i in range(10):
         image, mask = train_ds[randint]
         imgs.append(image)
         msks.append(mask)

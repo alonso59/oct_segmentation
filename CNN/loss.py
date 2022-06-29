@@ -70,7 +70,7 @@ class WeightedCrossEntropyDice(nn.Module):
         target1 = targets.squeeze(1)
         cross = self.CE(inputs, target1)
 
-        return dice_loss * 0.6 + cross
+        return dice_loss * 0.6 + cross * 0.4
 
 class WCEGeneralizedDiceLoss(nn.Module):
     def __init__(self, class_weights, device, activation='softmax'):
@@ -120,7 +120,6 @@ def dice_score(self, inputs, targets, activation='softmax'):
     true_1_hot = torch.eye(num_classes)[targets.squeeze(1).long()]
     true_1_hot = true_1_hot.permute(0, 3, 1, 2).float().to(self.device)
     true_1_hot = true_1_hot.type(inputs.type())
-
     # Getting probabilities
     if activation == 'softmax':
         probas = F.softmax(inputs, dim=1)

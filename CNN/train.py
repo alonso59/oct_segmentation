@@ -6,6 +6,7 @@ import torch.nn as nn
 import settings as cfg
 import segmentation_models_pytorch as smp
 from metrics import mIoU, IoU_binary
+from metric import SegmentationMetrics
 from trainer import trainer, eval
 from dataset import loaders
 from utils import create_dir, seeding
@@ -14,6 +15,7 @@ from matplotlib import pyplot as plt
 from scheduler import CyclicCosineDecayLR
 from torch.optim.lr_scheduler import StepLR, ExponentialLR
 from loss import *
+import datetime
 # import torch.utils.tensorboard
 
 def main():
@@ -33,17 +35,17 @@ def main():
     iter_plot_img = cfg.EPOCHS // 20
     """ Building model """
     models_class = SegmentationModels(device, in_channels=3, img_size=img_size, n_classes=n_classes)
-    model, preprocess_input = models_class.UNet(feature_start=32, layers=3, kernel_size=5, padding=2, dropout=0.1)
-    # model, preprocess_input = models_class.SwinUnet(
-    #     pretrain=True,
-    #     embed_dim=cfg.EMBED_DIM,
-    #     depths=cfg.DEPTHS,
-    #     num_heads=cfg.NUM_HEADS,
-    #     window_size=cfg.WINDOW_SIZE,
-    #     drop_path_rate=0.1,
-    #     mlp_ratio=6.
-    # )
-    # model, preprocess_input = models_class.UNet_imagenet(encoder_name='resnet50')
+    # model, preprocess_input = models_class.UNet(feature_start=16, layers=4, kernel_size=5, padding=2, dropout=0.0)
+    model, preprocess_input = models_class.SwinUnet(
+        pretrain=True,
+        embed_dim=cfg.EMBED_DIM,
+        depths=cfg.DEPTHS,
+        num_heads=cfg.NUM_HEADS,
+        window_size=cfg.WINDOW_SIZE,
+        drop_path_rate=0.0,
+        mlp_ratio=4.
+    )
+    # model, preprocess_input = models_class.UNet_imagenet(encoder_name='resnet18')
     # model, preprocess_input = models_class.sunet()
     try:
         name_model = model.__name__
@@ -72,10 +74,13 @@ def main():
     
     """ Prepare training """
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay, betas=(B1, B2))
-    # loss_fn = WeightedCrossEntropyDice(class_weights=class_weights, device=device)
-    loss_fn = DiceLoss(device=device)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    loss_fn = WeightedCrossEntropyDice(class_weights=class_weights, device=device)
+    # loss_fn = DiceLoss(device=device)
+    # loss_fn = CrossEntropyLoss(class_weights, device=device)
     # loss_fn = BinaryCrossEntropyLoss(device)
-    metrics = mIoU(device)
+    # metrics = mIoU(device=device)
+    metrics = SegmentationMetrics()
     # metrics = IoU_binary(device)
     if cfg.SCHEDULER == 'step':
         scheduler = StepLR(optimizer=optimizer, step_size=cfg.STEP_SIZE, gamma=cfg.GAMMA)
@@ -101,11 +106,11 @@ def main():
             device=device,
             checkpoint_path=checkpoint_path,
             scheduler=scheduler,
-            iter_plot_img=iter_plot_img,
+            iter_plot_img=10,
             name_model=name_model,
             tb_dir=version,
             logger=logger,
-            callback_stop_value=num_epochs // 5,
+            callback_stop_value=num_epochs // 2,
             )
     logger.info('-------------------- Finished Train ---------------------')
     logger.info('******************* Start evaluation  *******************')
@@ -120,6 +125,8 @@ def initialize():
     while(os.path.exists(f"logs/version{ver_}/")):
         ver_ += 1
     version = f"logs/version{ver_}/"
+    version = datetime.datetime.now()
+    version = 'logs/' + str(version.strftime("%Y-%m-%d_%H_%M_%S")) + '/'
     checkpoint_path = version + "checkpoints/"
     create_dir(checkpoint_path)
     with open(version + 'config.txt', 'w') as text_file:

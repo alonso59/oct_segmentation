@@ -1,7 +1,7 @@
 import torch
 from tqdm import tqdm
 from callbacks import *
-
+from metrics import mIoU
 
 def trainer(num_epochs, train_loader, val_loader, model, optimizer, loss_fn, metric, device, checkpoint_path, scheduler,
             iter_plot_img, name_model, callback_stop_value, tb_dir, logger):
@@ -17,17 +17,18 @@ def trainer(num_epochs, train_loader, val_loader, model, optimizer, loss_fn, met
         str = f"Epoch: {epoch+1}/{num_epochs} --loss_fn:{loss_fn.__name__} --model:{name_model} --lr:{lr_:.4e}"
         logger.info(str)
 
-        train_loss, train_metric, iter_train = train(
+        train_loss, train_iou, iter_train = train(
             loader=train_loader, model=model, writer=writer, optimizer=optimizer, loss_fn=loss_fn, device=device,
             metric=metric, iter_train=iter_train)
-        val_loss, val_metric, iter_val = validation(
+        val_loss, val_iou, iter_val = validation(
             model, val_loader, loss_fn, metric, device, iter_val, writer, iter_plot_img)
 
         """ scheduler learning rate """
         scheduler.step()
+        # metric_names = ['Pixel Acc', 'Dice', 'Precision', 'Recall']
         writer.learning_rate(optimizer.param_groups[0]["lr"], epoch)
-        writer.per_epoch(train_loss=train_loss, val_loss=val_loss,
-                         train_metric=train_metric, val_metric=val_metric, step=epoch)
+        writer.loss_epoch(train_loss, val_loss, epoch)
+        writer.metrics_epoch(train_metric=train_iou, val_metric=val_iou, step=epoch, metric_name='mIoU')
 
         """ Saving the model """
         if val_loss < best_valid_loss:
@@ -42,8 +43,8 @@ def trainer(num_epochs, train_loader, val_loader, model, optimizer, loss_fn, met
         if stop_early == callback_stop_value:
             logger.info('+++++++++++++++++ Stop training early +++++++++++++')
             break
-        logger.info(f'----> Train {metric.__name__}: {train_metric:.4f} \t Val. {metric.__name__}: {val_metric:.4f}')
-        logger.info(f'----> Train Loss: {train_loss:.4f} \t Val. Loss: {val_loss:.4f}')
+        logger.info(f'----> Train Loss: {train_loss:.5f} \t Val. Loss: {val_loss:.5f}')
+        logger.info(f'----> Train mIoU: {train_iou:.5f} \t Val. mIoU: {val_iou:0.5f}')
         logger.info(str_print)
     torch.save(model, checkpoint_path + f'/model_last.pth')
     torch.save(model.state_dict(), checkpoint_path + f'/weights_last.pth')
@@ -51,9 +52,10 @@ def trainer(num_epochs, train_loader, val_loader, model, optimizer, loss_fn, met
 
 def train(loader, model, writer, optimizer, loss_fn, device, metric, iter_train):
     train_loss = 0.0
-    train_iou = 0.0
+    train_metric = 0.0
     loop = tqdm(loader, ncols=150)
     model.train()
+    mean_iou = mIoU(device)
     for batch_idx, (x, y) in enumerate(loop):
         x = x.type(torch.float).to(device)
         y = y.type(torch.long).to(device)
@@ -65,65 +67,83 @@ def train(loader, model, writer, optimizer, loss_fn, device, metric, iter_train)
         loss.backward()
         optimizer.step()
         # metrics
-        iou = metric(y_pred, y)
-        train_iou += iou.mean()
+        iou = mean_iou(y_pred, y)
+        metric_value = metric(y, y_pred)
+        train_metric += iou.mean().item()
         train_loss += loss.item()
         # update tqdm loop
-        update_loop(loop, iou, loss, y_pred.shape[1])
+        loop.set_postfix(
+            Pixel_acc=metric_value[0],
+            Dice=metric_value[1],
+            Precision=metric_value[2],
+            Recall=metric_value[3],
+            Loss=loss.item(),
+            mIoU=iou.mean().item()
+            )
+        metric_value.append(iou.mean().item())
         # tensorboard callbacks
-        writer.per_iter(loss.item(), iou.mean(), iter_train, name='Train')
+        writer.loss_iter(loss.item(), iter_train, stage='Train')
+        metric_names = ['Pixel Acc', 'Dice', 'Precision', 'Recall', 'mIoU']
+        for i, names in enumerate(metric_names):
+            writer.metric_iter(
+                metric_value[i],
+                iter_train, stage='Train', metric_name=names)
         if iter_train % (len(loader) * 10) == 0:
-            print('Saving examples in Tensorboard...')
+            print('\nSaving examples in Tensorboard...')
             writer.save_images(x, y, y_pred, iter_train, device, tag='train')
         iter_train = iter_train + 1
-    return train_loss / len(loader), train_iou / len(loader), iter_train
+    return train_loss / len(loader), train_metric / len(loader), iter_train
 
 
 def validation(model, loader, loss_fn, metric, device, iter_val, writer, iter_plot_img):
     valid_loss = 0.0
-    valid_iou = 0.0
+    valid_metric = 0.0
     loop = tqdm(loader, ncols=150)
     model.eval()
+    mean_iou = mIoU(device)
     with torch.no_grad():
         for batch_idx, (x, y) in enumerate(loop):
             x = x.type(torch.float).to(device)
             y = y.type(torch.long).to(device)
             y_pred = model(x)
             loss = loss_fn(y_pred, y)
-            iou = metric(y_pred, y)
+            metric_value = metric(y, y_pred)
+            iou = mean_iou(y_pred, y)
             # accumulate metrics and loss items
-            valid_iou += iou.mean()
+            valid_metric += iou.mean().item()
             valid_loss += loss.item()
             # update tqdm loop
-            update_loop(loop, iou, loss, y_pred.shape[1])
+            loop.set_postfix(
+                Pixel_acc=metric_value[0],
+                Dice=metric_value[1],
+                Precision=metric_value[2],
+                Recall=metric_value[3],
+                Loss=loss.item(),
+                mIoU=iou.mean().item()
+                )
+            metric_value.append(iou.mean().item())
             # tensorboard callbacks
-            writer.per_iter(loss.item(), iou.mean(), iter_val, name='Val')
+            writer.loss_iter(loss.item(), iter_val, stage='Val')
+            metric_names = ['Pixel Acc', 'Dice', 'Precision', 'Recall', 'mIoU']
+            for i, names in enumerate(metric_names):
+                writer.metric_iter(
+                    metric_value[i],
+                    iter_val, stage='Val', metric_name=names)
+
             if iter_val % (len(loader) * iter_plot_img) == 0:
-                print('Saving examples in Tensorboard...')
+                print('\nSaving examples in Tensorboard...')
                 writer.save_images(x, y, y_pred, iter_val, device, tag='val')
             iter_val += 1
-    return valid_loss / len(loader), valid_iou / len(loader), iter_val
+    return valid_loss / len(loader), valid_metric / len(loader), iter_val
 
 
-def eval(model, loader, loss_fn, metric, device):
+def eval(model, loader, loss_fn, device):
     eval_loss = 0.0
-    eval_iou = 0.0
     model.eval()
     for batch_idx, (x, y) in enumerate(loader):
         x = x.type(torch.float).to(device)
         y = y.type(torch.long).to(device)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
-        iou = metric(y_pred, y)
         eval_loss += loss.item()
-        eval_iou += iou.mean()
-    return eval_loss / len(loader), eval_iou / len(loader)
-
-
-def update_loop(loop, metric, loss, classes):
-    if classes == 1:
-        loop.set_postfix(IoU=metric.mean(), loss=loss.item())
-    if classes == 3:
-        loop.set_postfix(IoU0=metric[0], IoU1=metric[1], IoU2=metric[2], loss=loss.item())
-    if classes == 4:
-        loop.set_postfix(IoU0=metric[0], IoU1=metric[1], IoU2=metric[2], IoU3=metric[2], loss=loss.item())
+    return eval_loss / len(loader)
