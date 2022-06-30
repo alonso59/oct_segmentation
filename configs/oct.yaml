@@ -1,0 +1,45 @@
+model_name: 'unet' #unet, unet_imagenet, swin_unet, swin_unet_custom
+
+unet_encoder: 'resnet18'
+
+swin_unet_custom_architecture:
+  embed_dim: 24
+  depths: [2, 2, 2, 2]
+  num_heads: [2, 2, 2, 2]
+  window_size: 7
+  drop_path_rate: 0.1
+
+unet_architecutre:
+  feature_start: 16
+  layers: 4
+  bilinear: False
+  dropout: 0.0
+  kernel_size: 3
+  stride: 1
+  padding: 1
+
+paths:
+  train_imgdir: 'dataset/128_OPL_EZ/train/Images/images_patches/'
+  train_mskdir: 'dataset/128_OPL_EZ/train/Masks/masks_patches'
+  val_imgdir: 'dataset/128_OPL_EZ/val/Images/images_patches'
+  val_mskdir: 'dataset/128_OPL_EZ/val/Masks/masks_patches'
+
+hyperparameters:
+  loss_fn: 'dice_loss'
+  optimizer: 'adam' # sgd, adam
+  batch_size: 64
+  num_epochs: 500
+  lr: 0.001
+  b1: 0.9
+  b2: 0.999
+  weight_decay: 0.002
+  scheduler: 
+    type: 'step' # cosine, exponential
+    gamma: 0.8
+    step: 10
+  n_gpus: 1
+
+general:
+  pretrain: False
+  n_classes: 3
+  img_size: 128
