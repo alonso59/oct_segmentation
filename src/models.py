@@ -26,7 +26,7 @@ class SegmentationModels(nn.Module):
             padding = self.config_file['unet_architecutre']['padding']
             self.model, name = self.UNet(feature_start, layers, bilinear, dropout, kernel_size, stride, padding)
         if name_model=='swin_unet':
-            self.model, name = self.Swin_Unet()
+            self.model, name = self.swin_unet()
         if name_model=='swin_unet_custom':
             embed_dim = self.config_file['swin_unet_custom_architecture']['embed_dim']
             depths = self.config_file['swin_unet_custom_architecture']['depths']
@@ -60,12 +60,12 @@ class SegmentationModels(nn.Module):
 
         return model, model.__name__
 
-    def Swin_Unet(self,
-                img_size = 224,
+    def swin_unet(self,
+                img_size = 128,
                 embed_dim=96,
                 depths=[2, 2, 6, 2],
                 num_heads=[3, 6, 12, 24],
-                window_size=7,
+                window_size=8,
                 drop_path_rate=0.1,
                 ):
 
@@ -83,7 +83,7 @@ class SegmentationModels(nn.Module):
         
         if self.pretrain:
             model.state_dict()
-            model.load_from("pretrain/swin_tiny_patch4_window7_224.pth", self.device)
+            model.load_from("pretrained/swin_tiny_patch4_window7_224.pth", self.device)
         return model, model.__name__
 
     def SwinUnet_Custom(self, 

@@ -49,12 +49,14 @@ class DiceLoss(nn.Module):
         return dice_loss
 
 class WeightedCrossEntropyDice(nn.Module):
-    def __init__(self, class_weights, device, activation='softmax'):
+    def __init__(self, class_weights, device, alpha, activation='softmax'):
         super(WeightedCrossEntropyDice, self).__init__()
         self.device = device
         self.class_weights = torch.tensor(class_weights).float().to(device)
         self.CE = nn.CrossEntropyLoss(weight=self.class_weights)
         self.activation = activation
+        self.alpha = alpha
+        
     @property
     def __name__(self):
         return "weigthed_entropy_dice"
@@ -70,7 +72,7 @@ class WeightedCrossEntropyDice(nn.Module):
         target1 = targets.squeeze(1)
         cross = self.CE(inputs, target1)
 
-        return dice_loss * 0.6 + cross * 0.4
+        return dice_loss * self.alpha + cross * (1 - self.alpha)
 
 class WCEGeneralizedDiceLoss(nn.Module):
     def __init__(self, class_weights, device, activation='softmax'):

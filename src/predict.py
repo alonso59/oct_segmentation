@@ -2,7 +2,7 @@ import os
 import sys
 import torch
 import os
-from metrics import mIoU
+from training.metrics import mIoU
 import torch
 import h5py
 import numpy as np
@@ -13,9 +13,12 @@ import torch.nn.functional as F
 import albumentations as T
 from albumentations.pytorch import ToTensorV2
 import sys
-from torchsummary import summary
-import settings as cfg
-from dataset import ImagesFromFolder
+import yaml
+
+
+from training.dataset import ImagesFromFolder
+
+
 def visualize(n, image, mask, pr_mask, path_save, name, metric_dict):
     """PLot images in one row."""
     figure, ax = plt.subplots(nrows=n, ncols=3)
@@ -37,11 +40,15 @@ def visualize(n, image, mask, pr_mask, path_save, name, metric_dict):
     plt.show()
 
 
-
-def main():
+def main(cfg):
+    paths = cfg['paths']
+    train_imgdir = paths['train_imgdir']
+    train_mskdir = paths['train_mskdir']
+    val_imgdir = paths['val_imgdir']
+    val_mskdir = paths['val_mskdir']
     """ CUDA device """
     device = torch.device("cuda")
-    path = 'logs/2022-06-29_16_24_42/checkpoints/model.pth'
+    path = 'logs/2022-07-01_00_04_00/checkpoints/model.pth'
     best_model = torch.load(path)
     imgs = []
     mask_true = []
@@ -50,11 +57,11 @@ def main():
     iou = mIoU(device)
     # np.random.seed(20)  # 2, 10, 20, 42, 32
     res_metric = {}
-    val_ds = ImagesFromFolder(image_dir=cfg.VAL_IMAGES,
-                                mask_dir=cfg.VAL_MASKS,
-                                transform=None,
-                                )
-    
+    val_ds = ImagesFromFolder(image_dir=val_imgdir,
+                              mask_dir=val_mskdir,
+                              transform=None,
+                              )
+
     for i in range(j):
         randint = np.random.randint(low=0, high=len(val_ds))
         image, mask = val_ds[randint]
@@ -85,10 +92,12 @@ def main():
 
     path_save = os.path.split(path)[0]
     visualize(n=len(imgs), image=np.array(imgs),
-                mask=np.array(mask_true), pr_mask=np.array(prds_msk),
-                path_save=path_save, name='unet', metric_dict=res_metric
-                )
+              mask=np.array(mask_true), pr_mask=np.array(prds_msk),
+              path_save=path_save, name='unet', metric_dict=res_metric
+              )
 
 
 if __name__ == '__main__':
-    main()
+    with open('configs/oct.yaml', "r") as ymlfile:
+        cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+    main(cfg)

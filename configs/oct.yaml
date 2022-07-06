@@ -1,45 +1,51 @@
-model_name: 'unet' #unet, unet_imagenet, swin_unet, swin_unet_custom
+model_name: 'unet_imagenet' #unet, unet_imagenet, swin_unet, swin_unet_custom
 
-unet_encoder: 'resnet18'
+unet_encoder: 'efficientnet-b0'
 
 swin_unet_custom_architecture:
   embed_dim: 24
   depths: [2, 2, 2, 2]
   num_heads: [2, 2, 2, 2]
-  window_size: 7
+  window_size: 8
   drop_path_rate: 0.1
 
 unet_architecutre:
   feature_start: 16
   layers: 4
   bilinear: False
-  dropout: 0.0
-  kernel_size: 3
+  dropout: 0.3
+  kernel_size: 5
   stride: 1
-  padding: 1
+  padding: 2
 
 paths:
-  train_imgdir: 'dataset/128_OPL_EZ/train/Images/images_patches/'
-  train_mskdir: 'dataset/128_OPL_EZ/train/Masks/masks_patches'
-  val_imgdir: 'dataset/128_OPL_EZ/val/Images/images_patches'
-  val_mskdir: 'dataset/128_OPL_EZ/val/Masks/masks_patches'
+  base: 'dataset/128_OPL_EZ_v1/'
+  train_imgdir: 'train/Images/images_patches/'
+  train_mskdir: 'train/Masks/masks_patches/'
+  val_imgdir: 'val/Images/images_patches/'
+  val_mskdir: 'val/Masks/masks_patches/'
+  test_imgdir: 'train/Images/'
+  test_mskdir: 'train/Masks/'
+  save_testimg: 'preds/Images/'
+  save_testmsk: 'preds/Masks/'
+  save_testpred: 'preds/Preds/'
 
 hyperparameters:
-  loss_fn: 'dice_loss'
+  loss_fn: 'dice_loss' #wce_dice, dice_loss
   optimizer: 'adam' # sgd, adam
   batch_size: 64
   num_epochs: 500
   lr: 0.001
   b1: 0.9
   b2: 0.999
-  weight_decay: 0.002
+  weight_decay: 0.0001
   scheduler: 
     type: 'step' # cosine, exponential
-    gamma: 0.8
-    step: 10
+    gamma: 0.7
+    step: 50
   n_gpus: 1
 
 general:
-  pretrain: False
+  pretrain: True
   n_classes: 3
   img_size: 128

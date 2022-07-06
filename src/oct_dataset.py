@@ -65,17 +65,17 @@ def get_images_masks(file):
         # Generate ground truth
         mask = np.zeros((data.shape[0], data.shape[1])).astype('uint8')
         for i in range(OPL.shape[0]):
-            data1[INL[i], i, 0] = 255
-            data1[OPL[i], i, 1] = 220
-            data1[PR2[i], i, 2] = 255
-            data1[PR1[i], i, :] = [255, 255, 0]
-            data1[ELM[i], i, :] = [255, 0, 255]
-            data1[BM[i], i, :] = [0, 255, 255]
+            # data1[INL[i], i, 0] = 255
+            # data1[OPL[i], i, 1] = 220
+            # data1[PR2[i], i, 2] = 255
+            # data1[PR1[i], i, :] = [255, 255, 0]
+            # data1[ELM[i], i, :] = [255, 0, 255]
+            # data1[BM[i], i, :] = [0, 255, 255]
 
             # OPL
-            mask[INL[i]:OPL[i], i] = 2 if INL[i] <= OPL[i] and INL[i] > 0 and OPL[i] > 0 else mask[INL[i]:OPL[i], i]
+            mask[INL[i]:OPL[i], i] = 3 if INL[i] <= OPL[i] and INL[i] > 0 and OPL[i] > 0 else mask[INL[i]:OPL[i], i]
             # ELM
-            # mask[ELM[i]:PR1[i], i] = 3 if ELM[i] <= PR1[i] and ELM[i] > 0 and PR1[i] > 0 else mask[ELM[i]:PR1[i], i]
+            # mask[ELM[i]:PR1[i], i] = 2 if ELM[i] <= PR1[i] and ELM[i] > 0 and PR1[i] > 0 else mask[ELM[i]:PR1[i], i]
             # EZ
             mask[PR1[i]:PR2[i], i] = 1 if PR1[i] <= PR2[i] and PR1[i] > 0 and PR2[i] > 0 else mask[PR1[i]:PR2[i], i]
             # BM
@@ -137,20 +137,23 @@ def crop_overlap(file, image, mask, path_img, path_msk, patient_id, size=128, sh
             j += 1
         k = i
 
-
+import sys
 def main():
-    id_train = ['8837',  '48104', '35282', 'IRD_RPE65_13', '35281',  'IRD_RPE65_22', '10162', '29331',  '51208',
-                '20952', '52372', 'IRD_RPE65_02', '52374', 'IRD_RPE65_10',  'IRD_RPE65_07', 'IRD_RPE65_16', '52113', '49031', '52065',
-                'IRD_RPE65_01', '49905', '35821', '42979', '43781', '52037', 'IRD_RPE65_06',  'IRD_RPE65_15', '16834',
-                 'IRD_RPE65_18', '35897', 'IRD_RPE65_08', 'IRD_RPE65_09',  '52051', 'IRD_RPE65_04','34571',
-                '30518', '6627', '48782', 'IRD_RPE65_05', 'IRD_RPE65_12', 'IRD_RPE65_03', '51021', '49699', '28008', '26472',
-                '51886', '52009', 'IRD_RPE65_17',  '52386', 'IRD_RPE65_23', '49919', '49885','51812', 
-                'IRD_RPE65_11', 'IRD_RPE65_21',  '49759', 'IRD_RPE65_19', 'IRD_RPE65_20']
+    id_train = ['8837',  'IRD_RPE65_13', '35281',   '10162',  '48104', 'IRD_RPE65_09', 'IRD_RPE65_16', '44872', '16831',
+                '20952', '52372', 'IRD_RPE65_02', '52374', 'IRD_RPE65_10',  'IRD_RPE65_07', '49759', '51013',  '51208',  
+                'IRD_RPE65_01', '49905', '35821', '42979', '43781', '52037', 'IRD_RPE65_06', 'IRD_RPE65_15', '51155', 
+                 'IRD_RPE65_18', '52458', '49883',  '35897', '6627',  'IRD_RPE65_04','34571', 'IRD_RPE65_20', '51812',   
+                '30518',    '49885', '16834', '51939', '51870', '35280', '40300', '15313', 'IRD_RPE65_22', '52051',    
+                '51886', '52009', 'IRD_RPE65_17', '52386', 'IRD_RPE65_23', 'IRD_RPE65_03', 'IRD_RPE65_08', '29331', 
+                'IRD_RPE65_11', 'IRD_RPE65_21', '49031', '49699',  'IRD_RPE65_05', 'IRD_RPE65_19', '51038','51904',
+                ]
 
-    id_val = ['52025', '40300', '15313', '51013', '23028', '51155', '52484', '44872', '51904', '35277', '45954',
-              '33996', '35328', '21509', '51038', '51939', '51870', '35280', '48731', '16831', '49883', '52458',
+    id_val = ['52025', '45954', '52484', '35277', '35282', '28008', '26472',  
+              '48782', '48104', '52113', '23028', '49919', '52065','48104', 
+              '33996', '35328', '21509', '51021', '48731', 'IRD_RPE65_12',
              ]
 
+    print('Factor train_size: ',len(id_val) / (len(id_train) + len(id_val)))
     IDs = []
     filenames_oct = get_filenames('dataset/OCT3/', 'vol')
     sum = 0.0
@@ -164,7 +167,7 @@ def main():
         data = oct_read.bscans[0].scan
         mask = get_images_masks(f1)
         # data = Image.fromarray(data)
-        base_path = 'dataset/128_OPL_EZ/'
+        base_path = 'dataset/128_OPL_EZ_v1/'
         train_path_images = base_path + 'train/Images/'
         train_path_masks = base_path + 'train/Masks/'
         val_path_images = base_path + 'val/Images/'
@@ -185,23 +188,24 @@ def main():
         create_dir(patches_masks_val)
         
         filename_save = str(meta['VisitDate']).replace(":", "_").replace(" ", "_").replace("-", "_")
+        
         try:
             id_train.index(meta['PatientID'])
-            np.save(train_path_images + str(meta['PatientID']) + '_' + filename_save + f"{idx}.npy", data)
-            np.save(train_path_masks + str(meta['PatientID']) + '_' + filename_save + f"{idx}.npy", mask)
+            np.save(train_path_images + name + f".npy", data)
+            np.save(train_path_masks + name + f".npy", mask)
             sum += np.mean(data / 255.)
             squared_sum += np.mean((data / 255.)**2)
             crop_overlap(f1, data, mask, patches_images_train, patches_masks_train,
-                         str(meta['PatientID']) + '_' + filename_save, size=128, shift=64)
+                         str(meta['PatientID']) + '_' + filename_save, size=128, shift=32)
         except:
             id_val.index(meta['PatientID'])
-            np.save(val_path_images + str(meta['PatientID']) + '_' + filename_save + f"{idx}.npy", data)
-            np.save(val_path_masks + str(meta['PatientID']) + '_' + filename_save + f"{idx}.npy", mask)
+            np.save(val_path_images + name + f".npy", data)
+            np.save(val_path_masks + name + f".npy", mask)
             # print(mask.shape, data.shape)
             sum += np.mean(data / 255.)
             squared_sum += np.mean((data / 255.)**2)
             crop_overlap(f1, data, mask, patches_images_val, patches_masks_val, str(
-                meta['PatientID']) + '_' + filename_save, size=128, shift=64)
+                meta['PatientID']) + '_' + filename_save, size=128, shift=32)
     
     mean = sum / len(filenames_oct)
     std = (squared_sum / len(filenames_oct) - mean**2)**0.5

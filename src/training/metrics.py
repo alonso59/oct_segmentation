@@ -40,7 +40,6 @@ class mIoU(nn.Module):
 
     def forward(self, logits, true, eps=1e-7):
         num_classes = logits.shape[1]
-        # print(true.squeeze(1).size())
         true_1_hot = torch.eye(num_classes, device=self.device)[true.squeeze(1)]
         true_1_hot = true_1_hot.permute(0, 3, 1, 2).float()
         true_1_hot = true_1_hot.type(true.type())
@@ -53,7 +52,7 @@ class mIoU(nn.Module):
         union = cardinality - intersection
         iou_score = (intersection / (union + eps))
         # print(iou_score)
-        return iou_score
+        return iou_score.detach().cpu().numpy()
 
 class IoU_binary(nn.Module):
 

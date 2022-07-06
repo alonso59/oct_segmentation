@@ -62,7 +62,7 @@ def loaders(train_imgdir,
     train_transforms = T.Compose(
         [   
             GrayGammaTransform(p=0.5),
-            T.Rotate(limit=(-30, 30), p=1.0, border_mode=cv2.BORDER_CONSTANT),
+            T.Rotate(limit=(-25, 25), p=1.0, border_mode=cv2.BORDER_CONSTANT),
             T.HorizontalFlip(p=0.5),
             # T.RandomBrightnessContrast(p=0.5),
             T.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, p=0.5),
